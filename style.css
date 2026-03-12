@@ -29,7 +29,11 @@ body {
 }
 
 header {
-  margin-top: 5vh;
+  margin-top: 15vh; /* 上からの余白で中央っぽく */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem; /* h1, p, ボタンの間隔 */
 }
 
 h1 {
@@ -49,37 +53,24 @@ p {
   text-shadow: 0 0 8px rgba(0,0,0,0.3);
 }
 
-/* ボタンスタイル */
 .button {
   display: inline-block;
-  padding: 1rem 2.5rem;
+  padding: 1rem 3rem;
+  background: linear-gradient(45deg, #ff6a00, #ff8e00); /* 明るいオレンジで目立たせる */
+  color: white;
   font-weight: 700;
   text-decoration: none;
-  background: linear-gradient(45deg, #ff7f50, #ff4e2a);
-  color: white;
   border-radius: 50px;
-  box-shadow: 0 6px 20px rgba(255,127,80,0.5);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 8px 20px rgba(255, 110, 0, 0.6);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  font-size: 1.2rem;
 }
 
-/* ホバー時に浮き上がる */
+/* ホバーで浮き上がるアニメーション */
 .button:hover {
-  transform: translateY(-5px) scale(1.05);
-  box-shadow: 0 10px 25px rgba(255,90,38,0.8);
-}
-
-main {
-  margin-top: 4rem;
-  width: 100%;
-  max-width: 800px;
-}
-
-section {
-  margin-bottom: 3rem;
-  padding: 1rem;
-  background: rgba(0,0,0,0.2);
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transform: translateY(-6px) scale(1.05);
+  box-shadow: 0 12px 30px rgba(255, 110, 0, 0.8);
+  background: linear-gradient(45deg, #ff8e00, #ffa500); /* 少し色を変えて光る感じ */
 }
 
 section h2 {
