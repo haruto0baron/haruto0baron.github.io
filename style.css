@@ -5,8 +5,12 @@
 }
 
 body {
-  background: linear-gradient(135deg, #1e3c72, #2a5298);
-  color: #eee;
+  /* アニメーション付きグラデーション背景 */
+  background: linear-gradient(135deg, #1e3c72, #2a5298, #6a11cb, #2575fc);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+  
+  color: #fff;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -16,13 +20,20 @@ body {
   padding: 2rem;
 }
 
+/* 背景グラデーションアニメーション */
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 h1 {
   font-size: 3rem;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 1rem;
-  text-shadow: 0 0 10px rgba(255 255 255 / 0.6);
+  text-shadow: 0 0 20px rgba(255 255 255, 0.7);
 }
 
 p {
@@ -30,24 +41,26 @@ p {
   max-width: 600px;
   margin-bottom: 2rem;
   line-height: 1.6;
-  text-shadow: 0 0 6px rgba(0 0 0 / 0.3);
+  text-shadow: 0 0 8px rgba(0 0 0, 0.3);
 }
 
+/* ボタンスタイル */
 a.button {
   display: inline-block;
-  padding: 1rem 2rem;
+  padding: 1rem 2.5rem;
   font-weight: 700;
   text-decoration: none;
-  background: #ff7f50;
+  background: linear-gradient(45deg, #ff7f50, #ff4e2a);
   color: white;
   border-radius: 50px;
-  box-shadow: 0 4px 15px rgba(255 127 80, 0.6);
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 6px 20px rgba(255 127 80, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* ボタンホバー時の浮き上がり効果 */
 a.button:hover {
-  background: #ff5a26;
-  box-shadow: 0 6px 20px rgba(255 90 38, 0.8);
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 10px 25px rgba(255 90 38, 0.8);
 }
 
 footer {
@@ -56,4 +69,5 @@ footer {
   font-size: 0.9rem;
   color: #ccc;
   user-select: none;
+  text-shadow: 0 0 4px rgba(0,0,0,0.2);
 }
