@@ -1,20 +1,21 @@
 /* ベースリセット */
 * {
-  margin: 0; padding: 0; box-sizing: border-box;
+  margin: 0; 
+  padding: 0; 
+  box-sizing: border-box;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* 背景アニメーション */
 body {
-  /* アニメーション付きグラデーション背景 */
   background: linear-gradient(135deg, #1e3c72, #2a5298, #6a11cb, #2575fc);
   background-size: 400% 400%;
   animation: gradientBG 15s ease infinite;
-  
   color: #fff;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   text-align: center;
   padding: 2rem;
@@ -27,13 +28,17 @@ body {
   100% { background-position: 0% 50%; }
 }
 
+header {
+  margin-top: 5vh;
+}
+
 h1 {
   font-size: 3rem;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 1rem;
-  text-shadow: 0 0 20px rgba(255 255 255, 0.7);
+  text-shadow: 0 0 20px rgba(255,255,255,0.7);
 }
 
 p {
@@ -41,11 +46,11 @@ p {
   max-width: 600px;
   margin-bottom: 2rem;
   line-height: 1.6;
-  text-shadow: 0 0 8px rgba(0 0 0, 0.3);
+  text-shadow: 0 0 8px rgba(0,0,0,0.3);
 }
 
 /* ボタンスタイル */
-a.button {
+.button {
   display: inline-block;
   padding: 1rem 2.5rem;
   font-weight: 700;
@@ -53,21 +58,44 @@ a.button {
   background: linear-gradient(45deg, #ff7f50, #ff4e2a);
   color: white;
   border-radius: 50px;
-  box-shadow: 0 6px 20px rgba(255 127 80, 0.5);
+  box-shadow: 0 6px 20px rgba(255,127,80,0.5);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* ボタンホバー時の浮き上がり効果 */
-a.button:hover {
+/* ホバー時に浮き上がる */
+.button:hover {
   transform: translateY(-5px) scale(1.05);
-  box-shadow: 0 10px 25px rgba(255 90 38, 0.8);
+  box-shadow: 0 10px 25px rgba(255,90,38,0.8);
+}
+
+main {
+  margin-top: 4rem;
+  width: 100%;
+  max-width: 800px;
+}
+
+section {
+  margin-bottom: 3rem;
+  padding: 1rem;
+  background: rgba(0,0,0,0.2);
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+section h2 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+section p {
+  font-size: 1.1rem;
 }
 
 footer {
-  position: absolute;
-  bottom: 10px;
+  margin-top: auto;
   font-size: 0.9rem;
   color: #ccc;
   user-select: none;
   text-shadow: 0 0 4px rgba(0,0,0,0.2);
+  padding: 1rem 0;
 }
