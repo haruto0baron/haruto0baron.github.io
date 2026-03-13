@@ -6,60 +6,99 @@
 
 <style>
 
+*{
+box-sizing:border-box;
+}
+
 body{
 margin:0;
-font-family:sans-serif;
-background:#eaf6ff;
-text-align:center;
+font-family:"Segoe UI",sans-serif;
+background:linear-gradient(180deg,#eaf6ff,#ffffff);
 color:#333;
 }
 
+/* ヘッダー */
+
 header{
-background:#bfe8ff;
-padding:30px;
+text-align:center;
+padding:60px 20px;
+background:linear-gradient(135deg,#bfe8ff,#eaf6ff);
 }
 
-main{
-padding:40px;
+header h1{
+margin:0;
+font-size:40px;
 }
+
+header p{
+margin-top:10px;
+color:#555;
+}
+
+/* メイン */
+
+main{
+max-width:1000px;
+margin:auto;
+padding:40px 20px;
+}
+
+/* ゲームカード */
 
 .game-list{
 display:flex;
 justify-content:center;
-gap:30px;
 flex-wrap:wrap;
+gap:30px;
 }
 
 .game-card{
 background:white;
-padding:20px;
-width:220px;
-border-radius:15px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);
+width:260px;
+padding:25px;
+border-radius:18px;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+transition:transform 0.25s, box-shadow 0.25s;
 }
+
+.game-card:hover{
+transform:translateY(-8px);
+box-shadow:0 15px 35px rgba(0,0,0,0.12);
+}
+
+.game-card h2{
+margin-top:0;
+}
+
+/* ボタン */
 
 .play{
 display:inline-block;
-margin-top:10px;
-padding:10px 20px;
-background:#bfe8ff;
+margin-top:15px;
+padding:10px 22px;
+border-radius:10px;
+background:#8fd8ff;
+color:#003344;
 text-decoration:none;
-color:#333;
-border-radius:8px;
+font-weight:bold;
+transition:background 0.2s;
 }
 
 .play:hover{
-background:#a8e0ff;
+background:#6ecfff;
 }
 
+/* フッター */
+
 footer{
-margin-top:40px;
-background:#bfe8ff;
-padding:20px;
+text-align:center;
+padding:25px;
+margin-top:60px;
+background:#f0f9ff;
+color:#666;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -75,8 +114,8 @@ padding:20px;
 
 <div class="game-card">
 <h2>Game 1</h2>
-<p>アクションゲーム</p>
-<a class="play" href="game1/index.html">プレイ</a>
+<p>TurboWarpで作ったアクションゲーム</p>
+<a class="play" href="game1/index.html">プレイする</a>
 </div>
 
 </div>
@@ -84,7 +123,7 @@ padding:20px;
 </main>
 
 <footer>
-<p>© 2026 My Game Site</p>
+© 2026 My Game Site
 </footer>
 
 </body>
