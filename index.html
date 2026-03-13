@@ -1,47 +1,37 @@
-body{
-font-family:sans-serif;
-background:#111;
-color:white;
-text-align:center;
-margin:0;
-}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>My HTML Games</title>
+<link rel="stylesheet" href="style.css">
+</head>
 
-header{
-background:#222;
-padding:30px;
-}
+<body>
 
-main{
-display:flex;
-justify-content:center;
-gap:40px;
-padding:40px;
-flex-wrap:wrap;
-}
+<header>
+<h1>My HTML Games</h1>
+<p>自作ブラウザゲーム</p>
+</header>
 
-.game{
-background:#1e1e1e;
-padding:20px;
-border-radius:10px;
-width:220px;
-}
+<main>
 
-a{
-display:inline-block;
-margin-top:10px;
-padding:10px 20px;
-background:#00aaff;
-color:white;
-text-decoration:none;
-border-radius:6px;
-}
+<div class="game">
+<h2>ゲーム1</h2>
+<p>シンプルなアクションゲーム</p>
+<a href="game1/index.html">プレイ</a>
+</div>
 
-a:hover{
-background:#0088cc;
-}
+<div class="game">
+<h2>ゲーム2</h2>
+<p>パズルゲーム</p>
+<a href="game2/index.html">プレイ</a>
+</div>
 
-footer{
-margin-top:40px;
-padding:20px;
-background:#222;
-}
+</main>
+
+<footer>
+<p>© 2026 My Games</p>
+</footer>
+
+</body>
+</html>
