@@ -1,37 +1,78 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>数字当てゲーム</title>
+<title>Game 1</title>
+
+<style>
+body{
+margin:0;
+font-family:sans-serif;
+background:#eaf6ff;
+text-align:center;
+color:#333;
+}
+
+header{
+background:#bfe8ff;
+padding:20px;
+}
+
+main{
+padding:30px;
+}
+
+.game{
+background:white;
+padding:20px;
+border-radius:15px;
+max-width:900px;
+margin:auto;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+iframe{
+width:100%;
+height:600px;
+border:none;
+border-radius:10px;
+}
+
+.back{
+display:inline-block;
+margin-top:20px;
+padding:10px 20px;
+background:#bfe8ff;
+color:#333;
+text-decoration:none;
+border-radius:8px;
+}
+
+.back:hover{
+background:#a8e0ff;
+}
+</style>
+
 </head>
 
-<body style="text-align:center">
+<body>
 
-<h1>数字当てゲーム</h1>
+<header>
+<h1>Game 2</h1>
+<p>ブラウザゲーム</p>
+</header>
 
-<p>1〜10の数字を当ててください</p>
+<main>
 
-<input id="guess">
-<button onclick="check()">決定</button>
+<div class="game">
 
-<p id="result"></p>
+<iframe src="https://turbowarp.org/1273690726/embed?interpolate"></iframe>
 
-<script>
-let answer = Math.floor(Math.random()*10)+1;
+<a class="back" href="../index.html">← トップへ戻る</a>
 
-function check(){
-let g = document.getElementById("guess").value;
+</div>
 
-if(g == answer){
-document.getElementById("result").textContent="正解！";
-}else{
-document.getElementById("result").textContent="違う！";
-}
-}
-</script>
-
-<br><br>
-<a href="../">←戻る</a>
+</main>
 
 </body>
 </html>
