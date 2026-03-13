@@ -32,16 +32,25 @@
   .white { background-color: white; }
   #status { margin-top: 10px; font-size: 18px; }
   #controls { margin-top: 10px; }
-  button { padding: 5px 10px; font-size: 16px; }
+  button { padding: 5px 10px; font-size: 16px; margin: 5px; }
 </style>
 </head>
 <body>
 
 <h1>リバーシゲーム 完全版</h1>
-<div id="board"></div>
-<div id="status"></div>
-<div id="controls">
-  <button id="resetBtn">ゲームをリセット</button>
+
+<div id="modeSelect">
+  <p>モードを選択してください:</p>
+  <button id="vsCpu">vs CPU</button>
+  <button id="vs2P">2人対戦</button>
+</div>
+
+<div id="boardContainer" style="display:none;">
+  <div id="board"></div>
+  <div id="status"></div>
+  <div id="controls">
+    <button id="resetBtn">ゲームをリセット</button>
+  </div>
 </div>
 
 <script>
@@ -49,12 +58,14 @@ const boardSize = 8;
 let board = [];
 let currentPlayer = 'black';
 let gameOver = false;
+let vsCpuMode = true; // trueならCPU, falseなら2P
 
 function initBoard() {
     const boardDiv = document.getElementById('board');
     boardDiv.innerHTML = '';
     board = Array.from({length: boardSize}, () => Array(boardSize).fill(null));
     gameOver = false;
+    currentPlayer = 'black';
 
     // 初期配置
     board[3][3] = 'white';
@@ -74,6 +85,10 @@ function initBoard() {
     }
     renderBoard();
     updateStatus();
+
+    if (vsCpuMode && currentPlayer === 'white') {
+        setTimeout(aiMove, 500);
+    }
 }
 
 function renderBoard() {
@@ -100,7 +115,8 @@ function updateStatus(message) {
 }
 
 function handleClick(x, y) {
-    if (gameOver || currentPlayer !== 'black') return; // プレイヤーは黒固定
+    if (gameOver) return;
+    if (vsCpuMode && currentPlayer === 'white') return; // CPUターンはクリック無効
     playTurn(x, y);
 }
 
@@ -127,8 +143,8 @@ function playTurn(x, y) {
         updateStatus();
     }
 
-    if (currentPlayer === 'white') {
-        setTimeout(aiMove, 500); // AIターン
+    if (vsCpuMode && currentPlayer === 'white') {
+        setTimeout(aiMove, 500);
     }
 }
 
@@ -182,12 +198,23 @@ function getWinnerMessage() {
     return `ゲーム終了！引き分け (${blackCount} : ${whiteCount})`;
 }
 
-document.getElementById('resetBtn').addEventListener('click', () => {
-    currentPlayer = 'black';
+// モード選択イベント
+document.getElementById('vsCpu').addEventListener('click', () => {
+    vsCpuMode = true;
+    document.getElementById('modeSelect').style.display = 'none';
+    document.getElementById('boardContainer').style.display = 'block';
+    initBoard();
+});
+document.getElementById('vs2P').addEventListener('click', () => {
+    vsCpuMode = false;
+    document.getElementById('modeSelect').style.display = 'none';
+    document.getElementById('boardContainer').style.display = 'block';
     initBoard();
 });
 
-initBoard();
+document.getElementById('resetBtn').addEventListener('click', () => {
+    initBoard();
+});
 </script>
 
 </body>
