@@ -10,8 +10,8 @@ body{
 margin:0;
 font-family:sans-serif;
 background:#eaf6ff;
-color:#333;
 text-align:center;
+color:#333;
 }
 
 header{
@@ -19,34 +19,43 @@ background:#bfe8ff;
 padding:30px;
 }
 
-h1{
-margin:0;
-}
-
 main{
 padding:40px;
 }
 
-.game-box{
-background:white;
-padding:30px;
-border-radius:15px;
-max-width:800px;
-margin:auto;
-box-shadow:0 5px 15px rgba(0,0,0,0.1);
+.game-list{
+display:flex;
+justify-content:center;
+gap:30px;
+flex-wrap:wrap;
 }
 
-iframe{
-border:none;
-width:100%;
-height:600px;
-border-radius:10px;
+.game-card{
+background:white;
+padding:20px;
+width:220px;
+border-radius:15px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+.play{
+display:inline-block;
+margin-top:10px;
+padding:10px 20px;
+background:#bfe8ff;
+text-decoration:none;
+color:#333;
+border-radius:8px;
+}
+
+.play:hover{
+background:#a8e0ff;
 }
 
 footer{
 margin-top:40px;
-padding:20px;
 background:#bfe8ff;
+padding:20px;
 }
 
 </style>
@@ -56,24 +65,26 @@ background:#bfe8ff;
 <body>
 
 <header>
-<h1>My HTML Game</h1>
-<p>自作ブラウザゲーム</p>
+<h1>My HTML Games</h1>
+<p>ブラウザで遊べる自作ゲーム</p>
 </header>
 
 <main>
 
-<div class="game-box">
+<div class="game-list">
 
-<h2>ゲームをプレイ</h2>
-
-<iframe src="https://turbowarp.org/1273690726/embed?interpolate"></iframe>
+<div class="game-card">
+<h2>Game 1</h2>
+<p>アクションゲーム</p>
+<a class="play" href="game1/index.html">プレイ</a>
+</div>
 
 </div>
 
 </main>
 
 <footer>
-© 2026 My Game
+<p>© 2026 My Game Site</p>
 </footer>
 
 </body>
