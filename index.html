@@ -2,35 +2,78 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>My HTML Games</title>
-<link rel="stylesheet" href="style.css">
+<title>My Game Site</title>
+
+<style>
+
+body{
+margin:0;
+font-family:sans-serif;
+background:#eaf6ff;
+color:#333;
+text-align:center;
+}
+
+header{
+background:#bfe8ff;
+padding:30px;
+}
+
+h1{
+margin:0;
+}
+
+main{
+padding:40px;
+}
+
+.game-box{
+background:white;
+padding:30px;
+border-radius:15px;
+max-width:800px;
+margin:auto;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
+iframe{
+border:none;
+width:100%;
+height:600px;
+border-radius:10px;
+}
+
+footer{
+margin-top:40px;
+padding:20px;
+background:#bfe8ff;
+}
+
+</style>
+
 </head>
 
 <body>
 
 <header>
-<h1>My HTML Games</h1>
+<h1>My HTML Game</h1>
 <p>自作ブラウザゲーム</p>
 </header>
 
 <main>
 
-<div class="game">
-<h2>ゲーム1</h2>
-<p>シンプルなアクションゲーム</p>
-<a href="game1/index.html">プレイ</a>
-</div>
+<div class="game-box">
 
-<div class="game">
-<h2>ゲーム2</h2>
-<p>パズルゲーム</p>
-<a href="game2/index.html">プレイ</a>
+<h2>ゲームをプレイ</h2>
+
+<iframe src="https://turbowarp.org/1273690726/embed?interpolate"></iframe>
+
 </div>
 
 </main>
 
 <footer>
-<p>© 2026 My Games</p>
+© 2026 My Game
 </footer>
 
 </body>
