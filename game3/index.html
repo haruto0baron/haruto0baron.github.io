@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>モバイル対応マリオ風ゲーム（改良版2）</title>
+<title>モバイル対応マリオ風ゲーム</title>
 <style>
   body { margin:0; overflow:hidden; touch-action:none; }
   canvas { display:block; background:#87CEEB; }
@@ -50,7 +50,7 @@ const stageWidth = 2000;
 // プレイヤー
 const player = {
   x:50, y:canvas.height-150, width:50, height:50, color:'red',
-  vx:0, vy:0, speed:5, gravity:1, jumpPower:-15, onGround:false
+  vx:0, vy:0, speed:5, gravity:1, jumpPower:-30, onGround:false
 };
 
 // ステージブロック
