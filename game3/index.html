@@ -3,132 +3,234 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>障害物避けゲーム</title>
+<title>モバイル対応マリオ風ゲーム</title>
 <style>
-    body {
-        margin: 0;
-        overflow: hidden;
-        background-color: #f0f0f0;
-        touch-action: none; /* タッチ操作をゲームに最適化 */
-    }
-    #gameCanvas {
-        display: block;
-        margin: 0 auto;
-        background-color: #ffffff;
-        border: 1px solid #000;
-    }
-    /* タッチボタン */
-    .touch-btn {
-        position: fixed;
-        bottom: 50px;
-        width: 60px;
-        height: 60px;
-        font-size: 30px;
-        opacity: 0.5;
-        border-radius: 30px;
-        border: none;
-        background-color: #333;
-        color: white;
-        user-select: none;
-    }
-    #leftBtn { left: 50px; }
-    #rightBtn { right: 50px; }
+  body { margin: 0; overflow: hidden; touch-action: none; }
+  canvas { display: block; background: #87CEEB; }
+
+  /* ジョイスティックUI */
+  #joystickBase {
+    position: absolute;
+    bottom: 100px;
+    left: 50px;
+    width: 100px;
+    height: 100px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 50%;
+    touch-action: none;
+  }
+  #joystickThumb {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 50%;
+    top: 25px;
+    left: 25px;
+    touch-action: none;
+  }
+
+  #jumpButton {
+    position: absolute;
+    bottom: 100px;
+    right: 50px;
+    width: 80px;
+    height: 80px;
+    background: rgba(255,0,0,0.5);
+    border-radius: 50%;
+    touch-action: none;
+    text-align: center;
+    line-height: 80px;
+    font-weight: bold;
+    color: white;
+    font-size: 24px;
+  }
+
+  #score {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 24px;
+    color: black;
+    font-weight: bold;
+  }
 </style>
 </head>
 <body>
 
-<canvas id="gameCanvas" width="400" height="600"></canvas>
+<canvas id="gameCanvas"></canvas>
 
-<!-- タッチ用ボタン -->
-<button id="leftBtn" class="touch-btn">◀</button>
-<button id="rightBtn" class="touch-btn">▶</button>
+<div id="joystickBase">
+  <div id="joystickThumb"></div>
+</div>
+<div id="jumpButton">↑</div>
+<div id="score">Score: 0</div>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// プレイヤー設定
-let player = {
-    x: canvas.width / 2 - 15,
-    y: canvas.height - 30,
-    width: 30,
-    height: 30,
-    speed: 5
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// スコア
+let score = 0;
+const scoreText = document.getElementById('score');
+
+// スクロール
+let scrollX = 0;
+
+// プレイヤー
+const player = {
+  x: 50,
+  y: canvas.height - 150,
+  width: 50,
+  height: 50,
+  color: 'red',
+  vx: 0,
+  vy: 0,
+  speed: 5,
+  gravity: 1,
+  jumpPower: -15,
+  onGround: false
 };
 
-// 障害物設定
-let obstacles = [];
-let obstacleSpeed = 2;
+// ステージ
+const blocks = [
+  { x:0, y:canvas.height-100, width:300, height:50 },
+  { x:400, y:canvas.height-150, width:200, height:50 },
+  { x:700, y:canvas.height-200, width:200, height:50 },
+  { x:1000, y:canvas.height-150, width:300, height:50 },
+];
 
-// キー・タッチ入力
-let rightPressed = false;
-let leftPressed = false;
+const coins = [
+  { x:420, y:canvas.height-190, width:20, height:20, collected:false },
+  { x:740, y:canvas.height-240, width:20, height:20, collected:false },
+  { x:1020, y:canvas.height-190, width:20, height:20, collected:false },
+];
 
-// キーボード操作
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Right' || e.key === 'ArrowRight') rightPressed = true;
-    if (e.key === 'Left' || e.key === 'ArrowLeft') leftPressed = true;
+const enemies = [
+  { x:600, y:canvas.height-100-50, width:50, height:50, vx:2 },
+  { x:1100, y:canvas.height-150-50, width:50, height:50, vx:1.5 },
+];
+
+// ジョイスティック
+const joystickBase = document.getElementById('joystickBase');
+const joystickThumb = document.getElementById('joystickThumb');
+let joystickActive = false;
+let joystickX = 0;
+
+joystickBase.addEventListener('touchstart', e => { joystickActive = true; });
+joystickBase.addEventListener('touchmove', e => {
+  if (!joystickActive) return;
+  const rect = joystickBase.getBoundingClientRect();
+  const touch = e.touches[0];
+  let x = touch.clientX - rect.left - rect.width/2;
+  let y = touch.clientY - rect.top - rect.height/2;
+  const distance = Math.sqrt(x*x + y*y);
+  const maxDistance = rect.width/2;
+  if (distance > maxDistance) { const ratio = maxDistance/distance; x*=ratio; y*=ratio; }
+  joystickThumb.style.transform = `translate(${x}px, ${y}px)`;
+  joystickX = x/maxDistance;
 });
-document.addEventListener('keyup', (e) => {
-    if (e.key === 'Right' || e.key === 'ArrowRight') rightPressed = false;
-    if (e.key === 'Left' || e.key === 'ArrowLeft') leftPressed = false;
+joystickBase.addEventListener('touchend', e => {
+  joystickActive = false;
+  joystickX = 0;
+  joystickThumb.style.transform = 'translate(0px,0px)';
 });
 
-// タッチ操作
-const leftBtn = document.getElementById('leftBtn');
-const rightBtn = document.getElementById('rightBtn');
+// ジャンプボタン
+const jumpButton = document.getElementById('jumpButton');
+jumpButton.addEventListener('touchstart', e => {
+  if(player.onGround) { player.vy = player.jumpPower; player.onGround = false; }
+});
 
-leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); leftPressed = true; });
-leftBtn.addEventListener('touchend', (e) => { e.preventDefault(); leftPressed = false; });
+// 更新
+function updatePlayer() {
+  player.vx = player.speed*joystickX;
+  player.x += player.vx;
+  player.vy += player.gravity;
+  player.y += player.vy;
 
-rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); rightPressed = true; });
-rightBtn.addEventListener('touchend', (e) => { e.preventDefault(); rightPressed = false; });
-
-// 障害物生成
-function createObstacle() {
-    let obstacleX = Math.random() * (canvas.width - 20);
-    obstacles.push({ x: obstacleX, y: 0, width: 20, height: 20 });
-}
-
-// ゲームループ
-function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // プレイヤー描画
-    ctx.fillStyle = 'blue';
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-
-    // 移動
-    if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
-    if (leftPressed && player.x > 0) player.x -= player.speed;
-
-    // 障害物描画・移動
-    ctx.fillStyle = 'red';
-    for (let i = 0; i < obstacles.length; i++) {
-        let obs = obstacles[i];
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        obs.y += obstacleSpeed;
-
-        // 当たり判定
-        if (player.x < obs.x + obs.width &&
-            player.x + player.width > obs.x &&
-            player.y < obs.y + obs.height &&
-            player.y + player.height > obs.y) {
-            alert('ゲームオーバー');
-            document.location.reload();
-            return;
-        }
+  // ブロック判定
+  player.onGround = false;
+  for(const block of blocks){
+    const bx = block.x + scrollX;
+    if(player.x+player.width>bx && player.x<bx+block.width &&
+       player.y+player.height>block.y && player.y<block.y+block.height){
+      if(player.vy>0){ player.y = block.y - player.height; player.vy=0; player.onGround=true; }
     }
+  }
 
-    requestAnimationFrame(gameLoop);
+  // コイン取得
+  for(const coin of coins){
+    if(!coin.collected && player.x+player.width>coin.x+scrollX && player.x<coin.x+scrollX+coin.width &&
+       player.y+player.height>coin.y && player.y<coin.y+coin.height){
+      coin.collected = true;
+      score += 1;
+      scoreText.innerText = `Score: ${score}`;
+    }
+  }
 }
 
-// 障害物生成間隔
-setInterval(createObstacle, 1000);
+function updateEnemies(){
+  for(const enemy of enemies){
+    enemy.x += enemy.vx;
+    if(enemy.x<0 || enemy.x>2000) enemy.vx*=-1;
 
-// 開始
-gameLoop();
+    const ex = enemy.x + scrollX;
+    if(player.x+player.width>ex && player.x<ex+enemy.width &&
+       player.y+player.height>enemy.y && player.y<enemy.y+enemy.height){
+      if(player.vy>0){ enemy.vx=0; player.vy=player.jumpPower/2; } // 上から踏んだら倒す
+      else { alert('Game Over'); window.location.reload(); }
+    }
+  }
+}
+
+// 描画
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // 地面
+  ctx.fillStyle = 'green';
+  ctx.fillRect(0,canvas.height-50,canvas.width,50);
+
+  // ブロック
+  ctx.fillStyle = 'brown';
+  for(const block of blocks){ ctx.fillRect(block.x+scrollX,block.y,block.width,block.height); }
+
+  // コイン
+  ctx.fillStyle = 'gold';
+  for(const coin of coins){ if(!coin.collected) ctx.fillRect(coin.x+scrollX,coin.y,coin.width,coin.height); }
+
+  // 敵
+  ctx.fillStyle = 'purple';
+  for(const enemy of enemies){ ctx.fillRect(enemy.x+scrollX,enemy.y,enemy.width,enemy.height); }
+
+  // プレイヤー
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x,player.y,player.width,player.height);
+}
+
+// メインループ
+function update(){
+  updatePlayer();
+  updateEnemies();
+
+  // スクロール
+  if(player.x>canvas.width/2){ scrollX -= player.vx; player.x = canvas.width/2; }
+
+  draw();
+  requestAnimationFrame(update);
+}
+
+update();
+
+// リサイズ対応
+window.addEventListener('resize', ()=>{
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
 </script>
-
 </body>
 </html>
