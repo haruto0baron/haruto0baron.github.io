@@ -96,7 +96,6 @@ function gameLoop() {
         player.y = canvas.height - 50 - player.height;
         player.dy = 0;
         player.onGround = true;
-　　     score++;
 
     }
 
@@ -128,7 +127,7 @@ function gameLoop() {
         ctx.fillRect(powerUps[i].x, powerUps[i].y, powerUps[i].width, powerUps[i].height);
 
         if (checkCollision(player, powerUps[i])) {
-            player.jumpPower += 10;
+            player.jumpPower += 2;
             powerUps.splice(i, 1);
         }
 
@@ -138,6 +137,7 @@ function gameLoop() {
     }
 
     // スコア描画
+    score++;
     ctx.fillStyle = "#fff";
     ctx.font = "30px Arial";
     ctx.fillText("スコア: " + score, 20, 40);
