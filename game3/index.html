@@ -2,222 +2,193 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>モバイル対応マリオ風ゲーム</title>
+<title>リバーシゲーム</title>
 <style>
-  body { margin:0; overflow:hidden; touch-action:none; }
-  canvas { display:block; background:#87CEEB; }
-  #joystickBase {
-    position:absolute; bottom:100px; left:50px;
-    width:100px; height:100px; background:rgba(0,0,0,0.3); border-radius:50%;
-    touch-action:none;
+  body { font-family: Arial, sans-serif; text-align: center; }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 50px);
+    grid-template-rows: repeat(8, 50px);
+    gap: 2px;
+    margin: 20px auto;
   }
-  #joystickThumb {
-    position:absolute; width:50px; height:50px;
-    background:rgba(0,0,0,0.5); border-radius:50%; top:25px; left:25px;
-    touch-action:none;
+  .cell {
+    width: 50px;
+    height: 50px;
+    background-color: green;
+    border-radius: 5px;
+    position: relative;
+    cursor: pointer;
   }
-  #jumpButton {
-    position:absolute; bottom:100px; right:50px;
-    width:80px; height:80px; background:rgba(255,0,0,0.5);
-    border-radius:50%; text-align:center; line-height:80px;
-    font-weight:bold; color:white; font-size:24px; touch-action:none;
+  .piece {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    position: absolute;
+    top: 5px;
+    left: 5px;
   }
-  #score {
-    position:absolute; top:20px; left:20px; font-size:24px; color:black; font-weight:bold;
-  }
+  .black { background-color: black; }
+  .white { background-color: white; }
+  #status { margin-top: 10px; font-size: 18px; }
+  #controls { margin-top: 10px; }
+  button { padding: 5px 10px; font-size: 16px; }
 </style>
 </head>
 <body>
 
-<canvas id="gameCanvas"></canvas>
-
-<div id="joystickBase"><div id="joystickThumb"></div></div>
-<div id="jumpButton">↑</div>
-<div id="score">Score: 0</div>
+<h1>リバーシゲーム 完全版</h1>
+<div id="board"></div>
+<div id="status"></div>
+<div id="controls">
+  <button id="resetBtn">ゲームをリセット</button>
+</div>
 
 <script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const boardSize = 8;
+let board = [];
+let currentPlayer = 'black';
+let gameOver = false;
 
-let score = 0;
-const scoreText = document.getElementById('score');
-let scrollX = 0;
-const stageWidth = 2000;
+function initBoard() {
+    const boardDiv = document.getElementById('board');
+    boardDiv.innerHTML = '';
+    board = Array.from({length: boardSize}, () => Array(boardSize).fill(null));
+    gameOver = false;
 
-// プレイヤー
-const player = {
-  x:50, y:canvas.height-150, width:50, height:50, color:'red',
-  vx:0, vy:0, speed:5, gravity:1, jumpPower:-20, onGround:false
-};
+    // 初期配置
+    board[3][3] = 'white';
+    board[3][4] = 'black';
+    board[4][3] = 'black';
+    board[4][4] = 'white';
 
-// ステージブロック
-const blocks = [
-  { x:0, y:canvas.height-100, width:300, height:50 },
-  { x:350, y:canvas.height-150, width:150, height:50 },
-  { x:550, y:canvas.height-220, width:100, height:50 },
-  { x:700, y:canvas.height-180, width:200, height:50 },
-  { x:950, y:canvas.height-250, width:150, height:50 },
-  { x:1150, y:canvas.height-150, width:300, height:50 },
-  { x:1500, y:canvas.height-200, width:200, height:50 },
-];
+    for (let y = 0; y < boardSize; y++) {
+        for (let x = 0; x < boardSize; x++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            cell.addEventListener('click', () => handleClick(x, y));
+            boardDiv.appendChild(cell);
+        }
+    }
+    renderBoard();
+    updateStatus();
+}
 
-// コイン
-const coins = [
-  { x:370, y:canvas.height-200, width:20, height:20, collected:false },
-  { x:570, y:canvas.height-270, width:20, height:20, collected:false },
-  { x:950, y:canvas.height-300, width:20, height:20, collected:false },
-  { x:1170, y:canvas.height-200, width:20, height:20, collected:false },
-];
+function renderBoard() {
+    for (let y = 0; y < boardSize; y++) {
+        for (let x = 0; x < boardSize; x++) {
+            const cell = document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
+            cell.innerHTML = '';
+            if (board[y][x]) {
+                const piece = document.createElement('div');
+                piece.className = 'piece ' + board[y][x];
+                cell.appendChild(piece);
+            }
+        }
+    }
+}
 
-// 敵
-const enemies = [
-  { x:600, y:canvas.height-150, width:50, height:50, vx:2 },
-  { x:1100, y:canvas.height-200, width:50, height:50, vx:1.5 },
-];
-
-// ゴール
-const goal = { x:1800, y:canvas.height-250, width:50, height:50 };
-
-// ジョイスティック
-const joystickBase = document.getElementById('joystickBase');
-const joystickThumb = document.getElementById('joystickThumb');
-let joystickActive=false, joystickX=0;
-joystickBase.addEventListener('touchstart', e=>{ joystickActive=true; });
-joystickBase.addEventListener('touchmove', e=>{
-  if(!joystickActive) return;
-  const rect = joystickBase.getBoundingClientRect();
-  const touch = e.touches[0];
-  let x = touch.clientX - rect.left - rect.width/2;
-  const distance = Math.sqrt(x*x + (touch.clientY - rect.top - rect.height/2)**2);
-  const maxDistance = rect.width/2;
-  if(distance>maxDistance){ const ratio=maxDistance/distance; x*=ratio; }
-  joystickThumb.style.transform = `translate(${x}px,0px)`;
-  joystickX = x/maxDistance;
-});
-joystickBase.addEventListener('touchend', e=>{ joystickActive=false; joystickX=0; joystickThumb.style.transform='translate(0px,0px)'; });
-
-// ジャンプ
-const jumpButton = document.getElementById('jumpButton');
-jumpButton.addEventListener('touchstart', e=>{
-  if(player.onGround){ player.vy = player.jumpPower; player.onGround=false; }
-});
-
-// 衝突判定（縦横）
-function checkCollision(a,b){
-  const dx=(a.x+a.width/2)-(b.x+scrollX+b.width/2);
-  const dy=(a.y+a.height/2)-(b.y+b.height/2);
-  const combinedHalfWidth=(a.width+b.width)/2;
-  const combinedHalfHeight=(a.height+b.height)/2;
-  if(Math.abs(dx)<combinedHalfWidth && Math.abs(dy)<combinedHalfHeight){
-    const overlapX=combinedHalfWidth-Math.abs(dx);
-    const overlapY=combinedHalfHeight-Math.abs(dy);
-    if(overlapX<overlapY){
-      if(dx>0) a.x+=overlapX; else a.x-=overlapX;
-      a.vx=0;
+function updateStatus(message) {
+    const status = document.getElementById('status');
+    if (message) {
+        status.textContent = message;
     } else {
-      if(dy>0){ a.y+=overlapY; a.vy=0; }
-      else{ a.y-=overlapY; a.vy=0; a.onGround=true; }
+        status.textContent = gameOver ? getWinnerMessage() : `現在のターン: ${currentPlayer === 'black' ? '黒' : '白'}`;
     }
-  }
 }
 
-// ゲームオーバー処理（リセット）
-function gameOver(){
-  player.x=50; player.y=canvas.height-150; player.vx=0; player.vy=0;
-  scrollX=0; score=0; scoreText.innerText=`Score: ${score}`;
-  for(const coin of coins) coin.collected=false;
-  enemies[0].x=600; enemies[1].x=1100; // 敵位置リセット
+function handleClick(x, y) {
+    if (gameOver || currentPlayer !== 'black') return; // プレイヤーは黒固定
+    playTurn(x, y);
 }
 
-// プレイヤー更新
-function updatePlayer(){
-  player.vx = player.speed*joystickX;
-  player.x += player.vx;
-  player.vy += player.gravity;
-  player.y += player.vy;
+function playTurn(x, y) {
+    const flips = getFlips(x, y, currentPlayer);
+    if (flips.length === 0) return;
 
-  for(const block of blocks) checkCollision(player,block);
+    board[y][x] = currentPlayer;
+    flips.forEach(([fx, fy]) => board[fy][fx] = currentPlayer);
 
-  // コイン取得
-  for(const coin of coins){
-    if(!coin.collected && player.x+player.width>coin.x+scrollX &&
-       player.x<coin.x+scrollX+coin.width && player.y+player.height>coin.y &&
-       player.y<coin.y+coin.height){
-      coin.collected=true; score++; scoreText.innerText=`Score: ${score}`;
+    currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+    renderBoard();
+
+    if (!hasValidMove(currentPlayer)) {
+        currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+        if (!hasValidMove(currentPlayer)) {
+            gameOver = true;
+            updateStatus();
+            return;
+        } else {
+            updateStatus(`パスしました: ${currentPlayer === 'black' ? '黒' : '白'}のターン`);
+        }
+    } else {
+        updateStatus();
     }
-  }
 
-  // 奈落判定
-  if(player.y > canvas.height){
-    gameOver();
-  }
-}
-
-// 敵更新（踏んだら消える）
-function updateEnemies(){
-  for(let i=enemies.length-1; i>=0; i--){
-    const enemy = enemies[i];
-    enemy.x += enemy.vx;
-    if(enemy.x<0 || enemy.x>2000) enemy.vx*=-1;
-
-    const ex = enemy.x + scrollX;
-    if(player.x+player.width>ex && player.x<ex+enemy.width &&
-       player.y+player.height>enemy.y && player.y<enemy.y+enemy.height){
-
-      if(player.vy>0 && (player.y + player.height - enemy.y) < player.height*0.7){
-        enemies.splice(i,1);
-        player.vy = player.jumpPower/2;
-        score++; scoreText.innerText=`Score: ${score}`;
-      } else gameOver();
+    if (currentPlayer === 'white') {
+        setTimeout(aiMove, 500); // AIターン
     }
-  }
 }
 
-// ゴール判定
-function checkGoal(){
-  if(player.x + player.width > goal.x + scrollX &&
-     player.x < goal.x + scrollX + goal.width &&
-     player.y + player.height > goal.y &&
-     player.y < goal.y + goal.height){
-       alert('ゴール！おめでとう！');
-       gameOver();
-  }
+function aiMove() {
+    if (gameOver) return;
+    const moves = getAllValidMoves('white');
+    if (moves.length === 0) {
+        currentPlayer = 'black';
+        if (!hasValidMove(currentPlayer)) gameOver = true;
+        updateStatus();
+        return;
+    }
+    const [x, y] = moves[Math.floor(Math.random() * moves.length)];
+    playTurn(x, y);
 }
 
-// 描画
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle='green'; ctx.fillRect(0,canvas.height-50,canvas.width,50);
-  ctx.fillStyle='brown'; for(const block of blocks) ctx.fillRect(block.x+scrollX,block.y,block.width,block.height);
-  ctx.fillStyle='gold'; for(const coin of coins) if(!coin.collected) ctx.fillRect(coin.x+scrollX,coin.y,coin.width,coin.height);
-  ctx.fillStyle='purple'; for(const enemy of enemies) ctx.fillRect(enemy.x+scrollX,enemy.y,enemy.width,enemy.height);
-  ctx.fillStyle='blue'; ctx.fillRect(goal.x+scrollX, goal.y, goal.width, goal.height);
-  ctx.fillStyle=player.color; ctx.fillRect(player.x,player.y,player.width,player.height);
+function getFlips(x, y, color) {
+    const directions = [[1,0],[0,1],[-1,0],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    const opponent = color === 'black' ? 'white' : 'black';
+    let flips = [];
+    directions.forEach(([dx, dy]) => {
+        let nx = x + dx, ny = y + dy;
+        let tempFlips = [];
+        while (nx >= 0 && nx < boardSize && ny >= 0 && ny < boardSize) {
+            if (board[ny][nx] === opponent) tempFlips.push([nx, ny]);
+            else if (board[ny][nx] === color) { flips.push(...tempFlips); break; }
+            else break;
+            nx += dx; ny += dy;
+        }
+    });
+    return flips;
 }
 
-// メインループ
-function update(){
-  updatePlayer();
-  updateEnemies();
-  checkGoal();
-
-  if(player.x>canvas.width/2 && scrollX>-(stageWidth-canvas.width)){ scrollX-=player.vx; player.x=canvas.width/2; }
-  else if(player.x<canvas.width/2 && scrollX<0){ scrollX-=player.vx; player.x=canvas.width/2; }
-
-  draw();
-  requestAnimationFrame(update);
+function hasValidMove(color) { return getAllValidMoves(color).length > 0; }
+function getAllValidMoves(color) {
+    const moves = [];
+    for (let y=0; y<boardSize; y++)
+        for (let x=0; x<boardSize; x++)
+            if (!board[y][x] && getFlips(x, y, color).length) moves.push([x, y]);
+    return moves;
 }
 
-update();
+function getWinnerMessage() {
+    let blackCount = 0, whiteCount = 0;
+    board.forEach(row => row.forEach(cell => {
+        if (cell==='black') blackCount++;
+        if (cell==='white') whiteCount++;
+    }));
+    if (blackCount > whiteCount) return `ゲーム終了！黒の勝ち (${blackCount} : ${whiteCount})`;
+    if (whiteCount > blackCount) return `ゲーム終了！白の勝ち (${whiteCount} : ${blackCount})`;
+    return `ゲーム終了！引き分け (${blackCount} : ${whiteCount})`;
+}
 
-// リサイズ対応
-window.addEventListener('resize', ()=>{
-  canvas.width=window.innerWidth;
-  canvas.height=window.innerHeight;
+document.getElementById('resetBtn').addEventListener('click', () => {
+    currentPlayer = 'black';
+    initBoard();
 });
+
+initBoard();
 </script>
+
 </body>
 </html>
