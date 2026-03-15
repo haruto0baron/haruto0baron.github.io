@@ -1,1 +1,385 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>リバーシゲーム</title>
 
+<style>
+
+body{
+font-family:Arial;
+margin:0;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+background:#1e7a2e;
+color:white;
+}
+
+#gameWrapper{
+text-align:center;
+}
+
+#board{
+display:grid;
+grid-template-columns:repeat(8,60px);
+grid-template-rows:repeat(8,60px);
+gap:4px;
+margin:20px auto;
+}
+
+.cell{
+width:60px;
+height:60px;
+background:green;
+border-radius:6px;
+position:relative;
+cursor:pointer;
+}
+
+.cell.valid{
+box-shadow:0 0 10px yellow inset;
+}
+
+.piece{
+width:50px;
+height:50px;
+border-radius:50%;
+position:absolute;
+top:5px;
+left:5px;
+}
+
+.black{background:black;}
+.white{background:white;}
+
+#status{
+font-size:20px;
+margin-top:10px;
+}
+
+#score{
+font-size:18px;
+margin-top:5px;
+}
+
+button{
+padding:10px 20px;
+font-size:18px;
+margin:10px;
+}
+
+#modeSelect button{
+font-size:28px;
+padding:20px 40px;
+border:none;
+border-radius:10px;
+background:#2ecc71;
+color:white;
+cursor:pointer;
+}
+
+#modeSelect button:hover{
+background:#27ae60;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="gameWrapper">
+
+<h1>リバーシゲーム</h1>
+
+<div id="modeSelect">
+<p>モードを選択してください</p>
+<button id="vsCpu">vs CPU</button>
+<button id="vs2P">2人対戦</button>
+</div>
+
+<div id="boardContainer" style="display:none;">
+<div id="board"></div>
+
+<div id="status"></div>
+<div id="score"></div>
+
+<button id="resetBtn">ゲームリセット</button>
+
+</div>
+
+</div>
+
+<script>
+
+const boardSize=8
+let board=[]
+let currentPlayer='black'
+let gameOver=false
+let vsCpuMode=true
+
+function initBoard(){
+
+const boardDiv=document.getElementById("board")
+boardDiv.innerHTML=""
+
+board=Array.from({length:boardSize},()=>Array(boardSize).fill(null))
+
+currentPlayer="black"
+gameOver=false
+
+board[3][3]="white"
+board[3][4]="black"
+board[4][3]="black"
+board[4][4]="white"
+
+for(let y=0;y<boardSize;y++){
+for(let x=0;x<boardSize;x++){
+
+const cell=document.createElement("div")
+cell.className="cell"
+cell.dataset.x=x
+cell.dataset.y=y
+
+cell.addEventListener("click",()=>handleClick(x,y))
+
+boardDiv.appendChild(cell)
+
+}}
+
+renderBoard()
+updateStatus()
+
+}
+
+function renderBoard(){
+
+for(let y=0;y<boardSize;y++){
+for(let x=0;x<boardSize;x++){
+
+const cell=document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`)
+cell.innerHTML=""
+cell.classList.remove("valid")
+
+if(board[y][x]){
+
+const piece=document.createElement("div")
+piece.className="piece "+board[y][x]
+cell.appendChild(piece)
+
+}else{
+
+if(getFlips(x,y,currentPlayer).length>0){
+cell.classList.add("valid")
+}
+
+}
+
+}}
+
+updateScore()
+
+}
+
+function updateScore(){
+
+let black=0
+let white=0
+
+board.forEach(row=>row.forEach(c=>{
+if(c==="black")black++
+if(c==="white")white++
+}))
+
+document.getElementById("score").textContent=
+`黒:${black}   白:${white}`
+
+}
+
+function updateStatus(){
+
+if(gameOver){
+document.getElementById("status").textContent=getWinnerMessage()
+}else{
+document.getElementById("status").textContent=
+`現在のターン: ${currentPlayer==="black"?"黒":"白"}`
+}
+
+}
+
+function handleClick(x,y){
+
+if(gameOver)return
+if(vsCpuMode && currentPlayer==="white")return
+
+playTurn(x,y)
+
+}
+
+function playTurn(x,y){
+
+const flips=getFlips(x,y,currentPlayer)
+
+if(flips.length===0)return
+
+board[y][x]=currentPlayer
+flips.forEach(([fx,fy])=>board[fy][fx]=currentPlayer)
+
+currentPlayer=currentPlayer==="black"?"white":"black"
+
+renderBoard()
+
+if(!hasValidMove(currentPlayer)){
+
+currentPlayer=currentPlayer==="black"?"white":"black"
+
+if(!hasValidMove(currentPlayer)){
+gameOver=true
+}
+
+}
+
+updateStatus()
+
+if(vsCpuMode && currentPlayer==="white"){
+setTimeout(aiMove,400)
+}
+
+}
+
+function aiMove(){
+
+const moves=getAllValidMoves("white")
+
+if(moves.length===0){
+currentPlayer="black"
+updateStatus()
+return
+}
+
+/* 少し賢いAI */
+let bestMove=null
+let bestScore=-1
+
+moves.forEach(([x,y])=>{
+
+let score=getFlips(x,y,"white").length
+
+/* 角を優先 */
+if((x===0||x===7)&&(y===0||y===7)){
+score+=10
+}
+
+if(score>bestScore){
+bestScore=score
+bestMove=[x,y]
+}
+
+})
+
+playTurn(bestMove[0],bestMove[1])
+
+}
+
+function getFlips(x,y,color){
+
+const dirs=[[1,0],[0,1],[-1,0],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]
+
+const opponent=color==="black"?"white":"black"
+
+let flips=[]
+
+dirs.forEach(([dx,dy])=>{
+
+let nx=x+dx
+let ny=y+dy
+
+let temp=[]
+
+while(nx>=0&&nx<boardSize&&ny>=0&&ny<boardSize){
+
+if(board[ny][nx]===opponent){
+
+temp.push([nx,ny])
+
+}else if(board[ny][nx]===color){
+
+flips.push(...temp)
+break
+
+}else break
+
+nx+=dx
+ny+=dy
+
+}
+
+})
+
+return flips
+
+}
+
+function getAllValidMoves(color){
+
+const moves=[]
+
+for(let y=0;y<boardSize;y++){
+for(let x=0;x<boardSize;x++){
+
+if(!board[y][x] && getFlips(x,y,color).length){
+moves.push([x,y])
+}
+
+}}
+
+return moves
+
+}
+
+function hasValidMove(color){
+return getAllValidMoves(color).length>0
+}
+
+function getWinnerMessage(){
+
+let black=0
+let white=0
+
+board.forEach(r=>r.forEach(c=>{
+if(c==="black")black++
+if(c==="white")white++
+}))
+
+if(black>white)return`黒の勝ち ${black}:${white}`
+if(white>black)return`白の勝ち ${white}:${black}`
+return`引き分け ${black}:${white}`
+
+}
+
+document.getElementById("vsCpu").onclick=()=>{
+vsCpuMode=true
+startGame()
+}
+
+document.getElementById("vs2P").onclick=()=>{
+vsCpuMode=false
+startGame()
+}
+
+function startGame(){
+
+document.getElementById("modeSelect").style.display="none"
+document.getElementById("boardContainer").style.display="block"
+
+initBoard()
+
+}
+
+document.getElementById("resetBtn").onclick=initBoard
+
+</script>
+
+</body>
+</html>
