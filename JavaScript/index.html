@@ -1,1 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>TurboWarp</title>
+<style>
+*{
+    box-sizing:border-box;
+}
+body{
+    margin:0;
+    font-family:"Segoe UI",sans-serif;
+    background:linear-gradient(180deg,#eaf6ff,#ffffff);
+    color:#333;
+}
 
+/* ヘッダー */
+header{
+    padding:20px 30px;
+    background:linear-gradient(135deg,#bfe8ff,#eaf6ff);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+}
+header h1{
+    margin:0;
+    font-size:32px;
+}
+header p{
+    margin:0;
+    color:#555;
+    font-size:14px;
+}
+
+/* ナビゲーション */
+nav{
+    margin-top:10px;
+}
+nav a{
+    margin-left:20px;
+    text-decoration:none;
+    color:#003344;
+    font-weight:bold;
+    padding:6px 10px;
+    border-radius:6px;
+    transition:background 0.2s;
+}
+nav a:hover{
+    background:#c7edff;
+}
+  
+/* メイン */
+main{
+    max-width:1000px;
+    margin:auto;
+    padding:40px 20px;
+}
+
+/* ゲームカード */
+.game-list{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:30px;
+}
+.game-card{
+    background:white;
+    width:260px;
+    padding:25px;
+    border-radius:18px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.08);
+    transition:transform 0.25s, box-shadow 0.25s;
+}
+.game-card:hover{
+    transform:translateY(-8px);
+    box-shadow:0 15px 35px rgba(0,0,0,0.12);
+}
+.game-card h2{
+    margin-top:0;
+}
+
+/* ボタン */
+.play{
+    display:inline-block;
+    margin-top:15px;
+    padding:10px 22px;
+    border-radius:10px;
+    background:#8fd8ff;
+    color:#003344;
+    text-decoration:none;
+    font-weight:bold;
+    transition:background 0.2s;
+}
+.play:hover{
+    background:#6ecfff;
+}
+
+/* フッター */
+footer{
+    text-align:center;
+    padding:25px;
+    margin-top:60px;
+    background:#f0f9ff;
+    color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div>
+        <h1>My Games</h1>
+        <p>ブラウザで遊べる自作ゲーム</p>
+    </div>
+
+    <nav>
+        <a href="../index.html">Home</a>
+        <a href="#games">Games</a>
+        <a href="#about">About</a>
+    </nav>
+</header>
+        
+<main id="games">
+    <div class="game-list">
+      
+        <div class="game-card">
+            <h2>ポーカー</h2>
+            <a class="play" href="poker/index.html">プレイする</a>
+        </div>
+      
+    </div>
+</main>
+
+<footer id="about">
+    © 2026 My Game Site
+</footer>
+
+</body>
+</html>
