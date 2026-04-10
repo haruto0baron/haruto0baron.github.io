@@ -1,1 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Voxel Engine A - Core</title>
+<style>
+body{margin:0;overflow:hidden;background:#000}
+canvas{display:block}
+</style>
+</head>
+<body>
 
+<canvas id="gl"></canvas>
+
+<script>
+// =====================================================
+// Voxel Engine Core (A)
+// WebGL2 기반 FPS + Render Pipeline + Engine Kernel
+// =====================================================
+
+const canvas=document.getElementById("gl");
+const gl=canvas.getContext("webgl2");
+
+if(!gl){
+alert("WebGL2 not supported");
+}
+
+// =====================================================
+// RESIZE SYSTEM (fixed DPI correctness)
+// =====================================================
+function resize(){
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+gl.viewport(0,0,canvas.width,canvas.height);
+}
+addEventListener("resize",resize);
+resize();
+
+// =====================================================
+// BASIC SHADER SYSTEM
+// (Voxel rendering will be instanced in later parts)
+// =====================================================
+
+const VERT= `#version 300 es
+precision highp float;
+
+layout(location=0) in vec3 aPos;
+
+uniform mat4 uProj;
+uniform mat4 uView;
+uniform mat4 uModel;
+
+void main(){
+gl_Position = uProj * uView * uModel * vec4(aPos,1.0);
+}
+`;
+
+const FRAG= `#version 300 es
+precision highp float;
+
+out vec4 outColor;
+uniform vec3 uColor;
+
+void main(){
+outColor = vec4(uColor,1.0);
+}
+`;
+
+function compile(type,src){
+let s=gl.createShader(type);
+gl.shaderSource(s,src);
+gl.compileShader(s);
+if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){
+console.log(gl.getShaderInfoLog(s));
+}
+return s;
+}
+
+const program=gl.createProgram();
+gl.attachShader(program,compile(gl.VERTEX_SHADER,VERT));
+gl.attachShader(program,compile(gl.FRAGMENT_SHADER,FRAG));
+gl.linkProgram(program);
+gl.useProgram(program);
+
+// =====================================================
+// ENGINE STATE (IMPORTANT DESIGN)
+// =====================================================
+
+const Engine={
+time:0,
+
+player:{
+x:0,y:40,z:0,
+yaw:0,
+pitch:0,
+vx:0,vy:0,vz:0
+},
+
+input:{
+keys:{},
+touch:{x:0,y:0,active:false}
+}
+};
+
+// =====================================================
+// INPUT SYSTEM (mobile + desktop unified)
+// =====================================================
+
+// keyboard
+addEventListener("keydown",e=>Engine.input.keys[e.key]=true);
+addEventListener("keyup",e=>Engine.input.keys[e.key]=false);
+
+// touch look (FPS camera)
+let lastX,lastY;
+
+addEventListener("touchmove",(e)=>{
+let t=e.touches[0];
+
+if(lastX!==undefined){
+let dx=t.clientX-lastX;
+let dy=t.clientY-lastY;
+
+Engine.player.yaw   -= dx*0.003;
+Engine.player.pitch -= dy*0.003;
+
+// clamp pitch
+Engine.player.pitch=Math.max(-1.5,Math.min(1.5,Engine.player.pitch));
+}
+
+lastX=t.clientX;
+lastY=t.clientY;
+});
+
+addEventListener("touchend",()=>{
+lastX=undefined;
+lastY=undefined;
+});
+
+// =====================================================
+// MATHEMATICAL UTILITIES (engine-grade)
+// =====================================================
+
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+function forwardVector(yaw,pitch){
+return {
+x:Math.sin(yaw)*Math.cos(pitch),
+y:Math.sin(pitch),
+z:Math.cos(yaw)*Math.cos(pitch)
+};
+}
+
+// =====================================================
+// CAMERA MATRIX (manual implementation)
+// no Three.js dependency → performance control
+// =====================================================
+
+function getViewMatrix(p){
+let f=forwardVector(p.yaw,p.pitch);
+
+let cx=p.x, cy=p.y, cz=p.z;
+
+// simple look-at (optimized)
+let up={x:0,y:1,z:0};
+
+return {
+forward:f,
+pos:p
+};
+}
+
+// =====================================================
+// UPDATE SYSTEM
+// =====================================================
+
+function update(){
+Engine.time+=0.016;
+
+const p=Engine.player;
+const k=Engine.input.keys;
+
+// movement vector
+let speed=0.25;
+
+let f=forwardVector(p.yaw,0);
+let right={x:f.z, y:0, z:-f.x};
+
+// WASD
+if(k["w"]){
+p.x+=f.x*speed;
+p.z+=f.z*speed;
+}
+if(k["s"]){
+p.x-=f.x*speed;
+p.z-=f.z*speed;
+}
+if(k["a"]){
+p.x+=right.x*speed;
+p.z+=right.z*speed;
+}
+if(k["d"]){
+p.x-=right.x*speed;
+p.z-=right.z*speed;
+}
+
+// gravity (placeholder until voxel collision in B)
+p.vy-=0.02;
+p.y+=p.vy;
+
+if(p.y<20){
+p.y=20;
+p.vy=0;
+}
+}
+
+// =====================================================
+// RENDER PIPELINE (base hook only)
+// actual voxel rendering is in B
+// =====================================================
+
+function render(){
+gl.clearColor(0.53,0.81,0.92,1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+gl.useProgram(program);
+
+// placeholder uniforms (real camera in B)
+}
+
+function loop(){
+update();
+render();
+requestAnimationFrame(loop);
+}
+
+loop();
+
+// =====================================================
+// ENGINE EXPORT (IMPORTANT FOR B,C,D)
+// =====================================================
+window.Engine={
+gl,
+canvas,
+program,
+state:Engine
+};
+
+</script>
+
+</body>
+</html>
