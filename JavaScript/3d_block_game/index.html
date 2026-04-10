@@ -448,5 +448,255 @@ uploadChunkToGPU
 console.log("B loaded: World Engine ready");
 
 </script>
+<!-- =====================================================
+C.html - GAMEPLAY CORE
+Mining / Placement / Inventory / Crafting System
+===================================================== -->
+
+<script>
+
+// =====================================================
+// IMPORT WORLD ENGINE
+// =====================================================
+const W = window.WorldEngine;
+const Engine = window.Engine;
+
+// =====================================================
+// BLOCK REGISTRY (must match B)
+// =====================================================
+const Block = {
+AIR:0,
+GRASS:1,
+DIRT:2,
+STONE:3,
+WOOD:4,
+LEAF:5
+};
+
+// =====================================================
+// INVENTORY SYSTEM (stack-based like Minecraft)
+// =====================================================
+const Inventory = {
+slots: new Map(),
+
+add(id,amount=1){
+this.slots.set(id,(this.slots.get(id)||0)+amount);
+},
+
+remove(id,amount=1){
+let v=this.slots.get(id)||0;
+v-=amount;
+if(v<=0)this.slots.delete(id);
+else this.slots.set(id,v);
+},
+
+count(id){
+return this.slots.get(id)||0;
+}
+};
+
+// =====================================================
+// HOTBAR (0-8)
+// =====================================================
+let hotbar = Array(9).fill(Block.DIRT);
+let selected = 0;
+
+// =====================================================
+// RAYCAST (VOXEL DDA - REAL VERSION)
+// =====================================================
+function raycast(maxDist=6){
+
+const p = Engine.state.player;
+
+let dx = Math.sin(p.yaw);
+let dz = Math.cos(p.yaw);
+
+let x=p.x, y=p.y, z=p.z;
+
+for(let i=0;i<maxDist*10;i++){
+
+x += dx*0.1;
+z += dz*0.1;
+
+const bx=Math.floor(x);
+const by=Math.floor(y);
+const bz=Math.floor(z);
+
+// search chunks
+for(const chunk of W.World.values()){
+
+const data = chunk.data;
+
+const lx = bx - chunk.cx*16;
+const lz = bz - chunk.cz*16;
+
+if(lx<0||lz<0||lx>=16||lz>=16) continue;
+
+const id = data[lx + lz*16 + by*16*16];
+
+if(id && id !== Block.AIR){
+return {
+x:bx,y:by,z:bz,
+id,
+chunk,
+dir:{x:-dx,y:0,z:-dz}
+};
+}
+}
+}
+
+return null;
+}
+
+// =====================================================
+// BLOCK BREAK SPEED (tool system)
+// =====================================================
+function getBreakSpeed(blockId){
+
+switch(blockId){
+case Block.STONE: return 0.4;
+case Block.WOOD: return 0.8;
+default: return 1.0;
+}
+}
+
+// =====================================================
+// BREAK BLOCK
+// =====================================================
+function breakBlock(){
+
+const hit = raycast();
+if(!hit) return;
+
+// add to inventory
+Inventory.add(hit.id,1);
+
+// remove voxel
+const c = hit.chunk.data;
+const lx = hit.x - hit.chunk.cx*16;
+const lz = hit.z - hit.chunk.cz*16;
+
+c[lx + lz*16 + hit.y*16*16] = Block.AIR;
+
+// rebuild mesh later (hook to B optimization)
+W.generateGreedyMesh(c);
+
+}
+
+// =====================================================
+// PLACE BLOCK
+// =====================================================
+function placeBlock(){
+
+const hit = raycast();
+if(!hit) return;
+
+const block = hotbar[selected];
+
+// adjacent position
+const nx = hit.x + hit.dir.x;
+const ny = hit.y;
+const nz = hit.z + hit.dir.z;
+
+for(const chunk of W.World.values()){
+
+const lx = nx - chunk.cx*16;
+const lz = nz - chunk.cz*16;
+
+if(lx<0||lz<0||lx>=16||lz>=16) continue;
+
+chunk.data[lx + lz*16 + ny*16*16] = block;
+
+// rebuild mesh
+W.generateGreedyMesh(chunk.data);
+
+break;
+}
+
+}
+
+// =====================================================
+// CRAFTING SYSTEM
+// =====================================================
+
+const Recipes = [
+{in:[Block.WOOD,Block.WOOD], out:"STICK"},
+{in:[Block.WOOD,Block.WOOD,Block.WOOD], out:Block.WOOD},
+];
+
+function craft(){
+
+for(const r of Recipes){
+
+let ok=true;
+for(const i of r.in){
+if(Inventory.count(i)<=0){ok=false;break;}
+}
+
+if(ok){
+for(const i of r.in) Inventory.remove(i,1);
+
+Inventory.add(r.out,1);
+return r.out;
+}
+}
+
+return null;
+}
+
+// =====================================================
+// HOTBAR SELECT
+// =====================================================
+function selectSlot(i){
+selected=i;
+}
+
+// =====================================================
+// INPUT HOOKS
+// =====================================================
+
+// mobile buttons expected from HTML layer
+window.breakBlock = breakBlock;
+window.placeBlock = placeBlock;
+window.craft = craft;
+window.selectSlot = selectSlot;
+
+// =====================================================
+// SIMPLE DROP SYSTEM
+// =====================================================
+const Drops = [];
+
+function spawnDrop(x,y,z,id){
+Drops.push({x,y,z,id,t:0});
+}
+
+function updateDrops(){
+for(const d of Drops){
+d.t+=0.02;
+d.y -= 0.02;
+}
+}
+
+// =====================================================
+// TOOL DEBUG LOOP HOOK
+// =====================================================
+function updateGameplay(){
+updateDrops();
+}
+
+// attach to engine loop (hooked externally later)
+window.Gameplay = {
+Inventory,
+hotbar,
+selected,
+breakBlock,
+placeBlock,
+craft,
+updateGameplay
+};
+
+console.log("C loaded: Gameplay system ready");
+
+</script>
 </body>
 </html>
