@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ワンキー回転ラン</title>
+<title>回転ラン改良版</title>
 <style>
   body {
     margin: 0;
@@ -10,9 +10,7 @@
     background: black;
     touch-action: none;
   }
-  canvas {
-    display: block;
-  }
+  canvas { display: block; }
 </style>
 </head>
 <body>
@@ -26,8 +24,8 @@ const ctx = canvas.getContext("2d");
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-// ===== プレイヤー =====
-let player = {
+// ===== プレイヤー（中央固定） =====
+const player = {
   x: canvas.width / 2,
   y: canvas.height / 2,
   angle: 0,
@@ -36,18 +34,22 @@ let player = {
 };
 
 let pressing = false;
+let rotated = false; // ←これがバグ防止
 let score = 0;
 let gameOver = false;
 
-// ===== 星背景 =====
+// ===== 星（遠近感）=====
 let stars = [];
-for (let i = 0; i < 120; i++) {
+for (let i = 0; i < 150; i++) {
   stars.push({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
-    z: Math.random() * 2
+    depth: Math.random() * 3 // 奥行き
   });
 }
+
+// ===== ワールドオフセット =====
+let worldOffset = { x: 0, y: 0 };
 
 // ===== 敵 & コイン =====
 let enemies = [];
@@ -55,16 +57,16 @@ let coins = [];
 
 setInterval(() => {
   enemies.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
+    x: worldOffset.x + Math.random() * canvas.width,
+    y: worldOffset.y + Math.random() * canvas.height,
     size: 15
   });
 }, 1500);
 
 setInterval(() => {
   coins.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
+    x: worldOffset.x + Math.random() * canvas.width,
+    y: worldOffset.y + Math.random() * canvas.height,
     size: 10,
     pulse: 0
   });
@@ -74,10 +76,16 @@ setInterval(() => {
 function pressStart() {
   if (gameOver) return;
   pressing = true;
-  player.angle += Math.PI / 2; // 90度回転
+
+  if (!rotated) {
+    player.angle += Math.PI / 2;
+    rotated = true;
+  }
 }
+
 function pressEnd() {
   pressing = false;
+  rotated = false;
 }
 
 addEventListener("mousedown", pressStart);
@@ -90,32 +98,24 @@ function update() {
   if (gameOver) return;
 
   // 加速 / 減速
-  if (pressing) {
-    player.speed += 0.2;
-  } else {
-    player.speed *= 0.95;
-  }
+  if (pressing) player.speed += 0.2;
+  else player.speed *= 0.95;
 
-  // 速度制限
   player.speed = Math.min(player.speed, 8);
 
-  // 移動
-  player.x += Math.cos(player.angle) * player.speed;
-  player.y += Math.sin(player.angle) * player.speed;
+  // ワールド移動（スクロール）
+  worldOffset.x += Math.cos(player.angle) * player.speed;
+  worldOffset.y += Math.sin(player.angle) * player.speed;
 
-  // 画面端ループ
-  if (player.x < 0) player.x = canvas.width;
-  if (player.x > canvas.width) player.x = 0;
-  if (player.y < 0) player.y = canvas.height;
-  if (player.y > canvas.height) player.y = 0;
-
-  // 星動き（奥行き風）
+  // 星（遠近スクロール）
   stars.forEach(s => {
-    s.y += s.z + player.speed * 0.2;
-    if (s.y > canvas.height) {
-      s.y = 0;
-      s.x = Math.random() * canvas.width;
-    }
+    s.x -= Math.cos(player.angle) * player.speed * (0.2 + s.depth);
+    s.y -= Math.sin(player.angle) * player.speed * (0.2 + s.depth);
+
+    if (s.x < 0) s.x = canvas.width;
+    if (s.x > canvas.width) s.x = 0;
+    if (s.y < 0) s.y = canvas.height;
+    if (s.y > canvas.height) s.y = 0;
   });
 
   // コインアニメ
@@ -123,16 +123,16 @@ function update() {
 
   // 衝突判定
   enemies.forEach(e => {
-    let dx = e.x - player.x;
-    let dy = e.y - player.y;
+    let dx = e.x - worldOffset.x - player.x;
+    let dy = e.y - worldOffset.y - player.y;
     if (Math.hypot(dx, dy) < e.size + player.size) {
       gameOver = true;
     }
   });
 
   coins.forEach((c, i) => {
-    let dx = c.x - player.x;
-    let dy = c.y - player.y;
+    let dx = c.x - worldOffset.x - player.x;
+    let dy = c.y - worldOffset.y - player.y;
     if (Math.hypot(dx, dy) < c.size + player.size) {
       coins.splice(i, 1);
       score++;
@@ -145,32 +145,37 @@ function draw() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // 星
-  ctx.fillStyle = "white";
+  // 星（奥行きでサイズ＆明るさ変化）
   stars.forEach(s => {
-    ctx.globalAlpha = s.z / 2;
-    ctx.fillRect(s.x, s.y, 2, 2);
+    ctx.globalAlpha = 0.3 + s.depth * 0.3;
+    ctx.fillRect(s.x, s.y, 1 + s.depth, 1 + s.depth);
   });
   ctx.globalAlpha = 1;
 
-  // コイン（アニメーション）
+  // コイン
   coins.forEach(c => {
+    let x = c.x - worldOffset.x;
+    let y = c.y - worldOffset.y;
+
     let scale = 1 + Math.sin(c.pulse) * 0.3;
     ctx.fillStyle = "gold";
     ctx.beginPath();
-    ctx.arc(c.x, c.y, c.size * scale, 0, Math.PI * 2);
+    ctx.arc(x, y, c.size * scale, 0, Math.PI * 2);
     ctx.fill();
   });
 
   // 敵
   ctx.fillStyle = "red";
   enemies.forEach(e => {
+    let x = e.x - worldOffset.x;
+    let y = e.y - worldOffset.y;
+
     ctx.beginPath();
-    ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+    ctx.arc(x, y, e.size, 0, Math.PI * 2);
     ctx.fill();
   });
 
-  // プレイヤー（進行方向付き）
+  // プレイヤー
   ctx.save();
   ctx.translate(player.x, player.y);
   ctx.rotate(player.angle);
@@ -183,7 +188,7 @@ function draw() {
   ctx.fill();
   ctx.restore();
 
-  // スコア
+  // UI
   ctx.fillStyle = "white";
   ctx.font = "20px sans-serif";
   ctx.fillText("Score: " + score, 20, 30);
@@ -202,7 +207,6 @@ function loop() {
 }
 loop();
 
-// リサイズ
 addEventListener("resize", () => {
   canvas.width = innerWidth;
   canvas.height = innerHeight;
