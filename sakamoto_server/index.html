@@ -145,22 +145,22 @@ footer{
 
 <script>
 function updateStatus(){
-    fetch("https://api.mcsrvstat.us/2/play.sakamoto-server.com:13680")
-    .then(res => res.json())
-    .then(data => {
-        const status = document.getElementById("status");
+    fetch("https://api.mcsrvstat.us/bedrock/2/play.sakamoto-server.com:13680")
+.then(res => res.json())
+.then(data => {
+    const status = document.getElementById("status");
 
-        if (data.online) {
-            status.innerText = "オンライン (" + data.players.online + "人)";
-            status.style.color = "green";
-        } else {
-            status.innerText = "オフライン";
-            status.style.color = "red";
-        }
-    })
-    .catch(() => {
-        document.getElementById("status").innerText = "取得失敗";
-    });
+    if (data.online) {
+        status.innerText = "オンライン (" + data.players.online + "人)";
+        status.style.color = "green";
+    } else {
+        status.innerText = "オフライン";
+        status.style.color = "red";
+    }
+})
+.catch(() => {
+    document.getElementById("status").innerText = "取得失敗";
+});
 }
 
 updateStatus();
