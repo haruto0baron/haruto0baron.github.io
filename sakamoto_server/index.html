@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="description" content="SAKAMOTO serverは統合版対応のMinecraftサーバーです。建築・サバイバル・PVPを楽しめます。">
-<meta name="keywords" content="マイクラ, Minecraft, サーバー, 統合版, SAKAMOTO server">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>sakamoto server公式</title>
 
@@ -30,7 +29,6 @@ header{
 header h1{
     margin:0;
     font-size:22px;
-    font-weight:600;
 }
 
 /* ナビ */
@@ -60,6 +58,13 @@ section{
     border-radius:14px;
     box-shadow:0 5px 15px rgba(0,0,0,0.05);
     margin-bottom:20px;
+    transition:0.3s;
+}
+
+/* カードホバー */
+.card:hover{
+    transform:translateY(-5px);
+    box-shadow:0 10px 25px rgba(0,0,0,0.08);
 }
 
 /* ボタン */
@@ -71,10 +76,12 @@ section{
     text-decoration:none;
     border-radius:8px;
     font-size:14px;
+    transition:0.2s;
 }
 
 .button:hover{
     background:#0063cc;
+    transform:translateY(-2px);
 }
 
 /* ステータス */
@@ -83,11 +90,53 @@ section{
     margin-top:10px;
 }
 
+/* フェードイン */
+.fade-in{
+    opacity:0;
+    transform:translateY(20px);
+    transition: all 0.8s ease;
+}
+
+.fade-in.show{
+    opacity:1;
+    transform:translateY(0);
+}
+
 /* フッター */
 footer{
     text-align:center;
     padding:30px;
     color:#777;
+}
+
+/* スマホ対応 */
+@media (max-width:600px){
+
+    header{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    nav{
+        margin-top:10px;
+    }
+
+    nav a{
+        margin-left:0;
+        margin-right:15px;
+    }
+
+    section{
+        margin:20px auto;
+    }
+
+    .card{
+        padding:20px;
+    }
+
+    h2{
+        font-size:18px;
+    }
 }
 </style>
 </head>
@@ -105,7 +154,7 @@ footer{
 
 <!-- トップ -->
 <section id="top">
-    <div class="card">
+    <div class="card fade-in">
         <h2>トップページ</h2>
         <p>
             このサイトでは、制作物や運営しているMinecraftサーバーの情報を掲載しています。
@@ -115,7 +164,7 @@ footer{
 
 <!-- サーバー -->
 <section id="server">
-    <div class="card">
+    <div class="card fade-in">
         <h2>SAKAMOTO server</h2>
         <p>建築・サバイバル・PVPに対応したマルチサーバー</p>
 
@@ -128,17 +177,17 @@ footer{
 
 <!-- ブログ -->
 <section id="blog">
-    <div class="card">
+    <div class="card fade-in">
         <h2>ブログ</h2>
         <p>サーバーの開発状況やアップデート情報を掲載予定です。</p>
 
-        <div class="card">
-        <h2>試運転します!</h2>
+        <div class="card fade-in">
+            <h2>試運転します!</h2>
             <p>どんなワールドか楽しみだ♪( ´▽｀)</p>
             <a href="Blog/2026.4.11.html" class="button">記事を読む</a>
         </div>
 
-        <div class="card">
+        <div class="card fade-in">
             <h2>サーバーを作ります！</h2>
             <p>現在、サーバーの基本システムを構築中です。</p>
             <a href="Blog/2026.4.10.html" class="button">記事を読む</a>
@@ -152,16 +201,12 @@ footer{
 </footer>
 
 <script>
+// サーバーステータス
 function updateStatus(){
     fetch("https://api.mcsrvstat.us/bedrock/2/around-enterprises.gl.at.ply.gg:13680")
-    .then(res => {
-        if (!res.ok) throw new Error("HTTPエラー: " + res.status);
-        return res.json();
-    })
+    .then(res => res.json())
     .then(data => {
         const status = document.getElementById("status");
-
-        console.log(data); // ←追加（超重要）
 
         if (data.online) {
             status.innerText = "オンライン (" + data.players.online + "人)";
@@ -171,14 +216,26 @@ function updateStatus(){
             status.style.color = "red";
         }
     })
-    .catch(err => {
-        console.error(err); // ←原因表示
-        document.getElementById("status").innerText = "取得失敗: " + err.message;
+    .catch(() => {
+        document.getElementById("status").innerText = "取得失敗";
     });
 }
 
 updateStatus();
 setInterval(updateStatus, 30000);
+
+// フェードイン
+const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+        if(entry.isIntersecting){
+            entry.target.classList.add("show");
+        }
+    });
+});
+
+document.querySelectorAll(".fade-in").forEach(el => {
+    observer.observe(el);
+});
 </script>
 
 </body>
