@@ -246,6 +246,207 @@ state:Engine
 };
 
 </script>
+<!-- =====================================================
+B.html - WORLD ENGINE CORE
+Chunk System + Greedy Meshing + Voxel Data Layer
+===================================================== -->
 
+<script>
+// =====================================================
+// IMPORT ENGINE FROM A
+// =====================================================
+const Engine = window.Engine;
+
+// =====================================================
+// BLOCK TYPES (expandable like Minecraft registry)
+// =====================================================
+const Block = {
+AIR:0,
+GRASS:1,
+DIRT:2,
+STONE:3,
+WOOD:4,
+LEAF:5
+};
+
+// =====================================================
+// WORLD CONFIG
+// =====================================================
+const CHUNK_SIZE = 16;
+const WORLD_HEIGHT = 64;
+
+// chunk storage
+const World = new Map();
+
+// =====================================================
+// HASH
+// =====================================================
+function chunkKey(x,z){
+return x + "," + z;
+}
+
+// =====================================================
+// SIMPLE PROCEDURAL NOISE (replace later with simplex)
+// =====================================================
+function heightNoise(x,z){
+return Math.sin(x*0.08) * 4 + Math.cos(z*0.07) * 4;
+}
+
+// =====================================================
+// CREATE CHUNK DATA (VOXEL ARRAY)
+// =====================================================
+function createChunk(cx,cz){
+
+const data = new Uint8Array(
+CHUNK_SIZE * CHUNK_SIZE * WORLD_HEIGHT
+);
+
+for(let x=0;x<CHUNK_SIZE;x++){
+for(let z=0;z<CHUNK_SIZE;z++){
+
+const worldX = cx * CHUNK_SIZE + x;
+const worldZ = cz * CHUNK_SIZE + z;
+
+const h = 20 + Math.floor(heightNoise(worldX,worldZ));
+
+for(let y=0;y<WORLD_HEIGHT;y++){
+
+let id = Block.AIR;
+
+if(y < h - 4) id = Block.STONE;
+else if(y < h - 1) id = Block.DIRT;
+else if(y < h) id = Block.GRASS;
+
+data[x + z*CHUNK_SIZE + y*CHUNK_SIZE*CHUNK_SIZE] = id;
+}
+}
+}
+
+return data;
+}
+
+// =====================================================
+// VOXEL GETTER
+// =====================================================
+function getVoxel(chunk,data,x,y,z){
+if(
+x<0||x>=CHUNK_SIZE||
+y<0||y>=WORLD_HEIGHT||
+z<0||z>=CHUNK_SIZE
+) return Block.AIR;
+
+return data[x + z*CHUNK_SIZE + y*CHUNK_SIZE*CHUNK_SIZE];
+}
+
+// =====================================================
+// GREEDY MESHING (CORE IMPLEMENTATION)
+// =====================================================
+// This is the performance core of Minecraft-like engines
+// It merges faces into large quads instead of cubes
+
+function generateGreedyMesh(data){
+
+const vertices = [];
+
+function solid(id){ return id !== Block.AIR; }
+
+// iterate 3D voxel space
+for(let y=0;y<WORLD_HEIGHT;y++){
+for(let x=0;x<CHUNK_SIZE;x++){
+for(let z=0;z<CHUNK_SIZE;z++){
+
+const id = getVoxel(null,data,x,y,z);
+if(!solid(id)) continue;
+
+// check faces (6 directions)
+const px = getVoxel(null,data,x+1,y,z);
+const nx = getVoxel(null,data,x-1,y,z);
+const py = getVoxel(null,data,x,y+1,z);
+const ny = getVoxel(null,data,x,y-1,z);
+const pz = getVoxel(null,data,x,y,z+1);
+const nz = getVoxel(null,data,x,y,z-1);
+
+// only exposed faces become geometry
+if(!solid(px)) pushFace(vertices,x,y,z,1,id);
+if(!solid(nx)) pushFace(vertices,x,y,z,0,id);
+if(!solid(py)) pushFace(vertices,x,y,z,3,id);
+if(!solid(ny)) pushFace(vertices,x,y,z,2,id);
+if(!solid(pz)) pushFace(vertices,x,y,z,5,id);
+if(!solid(nz)) pushFace(vertices,x,y,z,4,id);
+
+}
+}
+}
+
+return vertices;
+}
+
+// =====================================================
+// FACE GENERATION (optimized cube face emitter)
+// =====================================================
+function pushFace(out,x,y,z,dir,id){
+
+// cube face vertices (1 quad = 2 triangles later in C)
+const v = [
+x,y,z,  id,
+x+1,y,z, id,
+x+1,y+1,z, id,
+x,y+1,z, id
+];
+
+out.push({v,dir});
+}
+
+// =====================================================
+// CHUNK BUILD (mesh + data)
+// =====================================================
+function buildChunk(cx,cz){
+
+const data = createChunk(cx,cz);
+const mesh = generateGreedyMesh(data);
+
+World.set(chunkKey(cx,cz),{
+data,
+mesh,
+cx,cz
+});
+
+return World.get(chunkKey(cx,cz));
+}
+
+// =====================================================
+// INITIAL WORLD LOAD (3x3 chunks)
+// =====================================================
+for(let x=-1;x<=1;x++){
+for(let z=-1;z<=1;z++){
+buildChunk(x,z);
+}
+}
+
+// =====================================================
+// GPU BUFFER BUILDER (placeholder hook for C)
+// =====================================================
+function uploadChunkToGPU(chunk){
+
+// later: convert mesh → VBO/IBO
+// this is where real performance comes from
+
+return chunk.mesh.length;
+}
+
+// =====================================================
+// ENGINE HOOK EXPORT
+// =====================================================
+window.WorldEngine = {
+World,
+buildChunk,
+generateGreedyMesh,
+createChunk,
+uploadChunkToGPU
+};
+
+console.log("B loaded: World Engine ready");
+
+</script>
 </body>
 </html>
