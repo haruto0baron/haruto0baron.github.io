@@ -1,152 +1,254 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>Mini Voxel Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Voxel Sandbox</title>
 <style>
-body { margin: 0; overflow: hidden; }
-#ui {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 10;
+html,body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;}
+#ui{
+  position:fixed;bottom:10px;left:10px;right:10px;
+  display:flex;gap:10px;justify-content:center;z-index:10;
 }
-button {
-  font-size: 16px;
-  margin: 4px;
+.btn{
+  padding:14px 18px;
+  background:#ffffffcc;
+  border-radius:12px;
+  font-weight:bold;
+  user-select:none;
+  touch-action:none;
+}
+#slot{
+  position:fixed;top:10px;left:10px;
+  background:#00000066;color:#fff;
+  padding:8px 12px;border-radius:10px;
 }
 </style>
 </head>
 <body>
+<div id="slot">Block: GRASS</div>
 
 <div id="ui">
-  <button onclick="setBlock('grass')">草</button>
-  <button onclick="setBlock('wood')">木</button>
-  <button onclick="setBlock('stone')">石</button>
+  <div class="btn" onclick="setBlock('grass')">草</div>
+  <div class="btn" onclick="setBlock('dirt')">土</div>
+  <div class="btn" onclick="setBlock('stone')">石</div>
+  <div class="btn" onclick="setBlock('wood')">木</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
 <script>
-let scene = new THREE.Scene();
-scene.background = new THREE.Color(0xaadfff);
+// =====================
+// Simplex Noise
+// =====================
+class SimplexNoise {
+  constructor() {
+    this.p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) this.p[i] = i;
+    for (let i = 255; i > 0; i--) {
+      const r = Math.floor(Math.random() * (i + 1));
+      [this.p[i], this.p[r]] = [this.p[r], this.p[i]];
+    }
+  }
+  noise2D(x, y) {
+    const dot = (g, x, y) => g[0] * x + g[1] * y;
+    const grad = [
+      [1,1],[-1,1],[1,-1],[-1,-1],
+      [1,0],[-1,0],[0,1],[0,-1]
+    ];
+    const xi = Math.floor(x) & 255;
+    const yi = Math.floor(y) & 255;
+    const xf = x - Math.floor(x);
+    const yf = y - Math.floor(y);
+    const u = xf * xf * (3 - 2 * xf);
+    const v = yf * yf * (3 - 2 * yf);
 
-let camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-camera.position.set(5,5,10);
+    const aa = this.p[(xi + this.p[yi]) & 255] % 8;
+    const ab = this.p[(xi + this.p[yi+1]) & 255] % 8;
+    const ba = this.p[(xi+1 + this.p[yi]) & 255] % 8;
+    const bb = this.p[(xi+1 + this.p[yi+1]) & 255] % 8;
 
-let renderer = new THREE.WebGLRenderer({antialias:true});
+    const x1 = lerp(dot(grad[aa], xf, yf), dot(grad[ba], xf-1, yf), u);
+    const x2 = lerp(dot(grad[ab], xf, yf-1), dot(grad[bb], xf-1, yf-1), u);
+    return lerp(x1, x2, v);
+  }
+}
+const lerp = (a,b,t)=>a+(b-a)*t;
+
+// =====================
+// Scene Setup
+// =====================
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-let light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(10,10,10);
+camera.position.set(20,20,20);
+
+// Light
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+const light = new THREE.DirectionalLight(0xffffff,0.8);
+light.position.set(10,20,10);
 scene.add(light);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+// =====================
+// World Data
+// =====================
+const SIZE = 25;
+const HEIGHT = 10;
+const noise = new SimplexNoise();
 
-// 地面
-let blocks = [];
+const blocks = {}; // key: x,y,z => type
 
-function makeBlock(x,y,z,color){
-  let geo = new THREE.BoxGeometry(1,1,1);
-  let mat = new THREE.MeshLambertMaterial({color});
-  let cube = new THREE.Mesh(geo, mat);
-  cube.position.set(x,y,z);
-  scene.add(cube);
-  blocks.push(cube);
-  return cube;
-}
+function key(x,y,z){return `${x},${y},${z}`;}
 
-// 初期地面
-for(let x=-5;x<=5;x++){
-  for(let z=-5;z<=5;z++){
-    makeBlock(x,0,z,0x55aa55);
+function genWorld(){
+  for(let x=0;x<SIZE;x++){
+    for(let z=0;z<SIZE;z++){
+      const h = Math.floor((noise.noise2D(x*0.1,z*0.1)+1)*3 + 3);
+      for(let y=0;y<h;y++){
+        let type = "stone";
+        if(y===h-1) type="grass";
+        else if(y>h-3) type="dirt";
+        blocks[key(x,y,z)] = type;
+      }
+    }
   }
 }
+genWorld();
 
-let selected = 'wood';
+// =====================
+// Mesh
+// =====================
+let meshes = [];
 
-function setBlock(type){
-  selected = type;
+function rebuild(){
+  meshes.forEach(m=>scene.remove(m));
+  meshes = [];
+
+  const geo = new THREE.BoxGeometry(1,1,1);
+
+  const mat = {
+    grass: new THREE.MeshLambertMaterial({color:0x55aa55}),
+    dirt: new THREE.MeshLambertMaterial({color:0x8b5a2b}),
+    stone: new THREE.MeshLambertMaterial({color:0x888888}),
+    wood: new THREE.MeshLambertMaterial({color:0x7a4a1a}),
+  };
+
+  const groups = {grass:[],dirt:[],stone:[],wood:[]};
+
+  for(const k in blocks){
+    const [x,y,z] = k.split(",").map(Number);
+    groups[blocks[k]].push([x,y,z]);
+  }
+
+  for(const t in groups){
+    const g = groups[t];
+    const mesh = new THREE.InstancedMesh(geo, mat[t], g.length);
+    const dummy = new THREE.Object3D();
+
+    g.forEach((p,i)=>{
+      dummy.position.set(p[0],p[1],p[2]);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i,dummy.matrix);
+    });
+
+    mesh.instanceMatrix.needsUpdate = true;
+    scene.add(mesh);
+    meshes.push(mesh);
+  }
+}
+rebuild();
+
+// =====================
+// Interaction
+// =====================
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+let currentBlock = "grass";
+function setBlock(t){
+  currentBlock = t;
+  document.getElementById("slot").innerText = "Block: " + t.toUpperCase();
 }
 
-function colorFromType(type){
-  if(type==='grass') return 0x55ff55;
-  if(type==='stone') return 0x888888;
-  if(type==='wood') return 0x8b5a2b;
-}
+// Camera control
+let dragging=false;
+let prevX=0,prevY=0;
+let rotX=0,rotY=0;
 
-// レイキャスト
-let raycaster = new THREE.Raycaster();
-let mouse = new THREE.Vector2();
+document.body.addEventListener("pointerdown",e=>{
+  dragging=true;
+  prevX=e.clientX; prevY=e.clientY;
+});
 
-function onTap(event){
-  let x = (event.clientX / innerWidth) * 2 - 1;
-  let y = -(event.clientY / innerHeight) * 2 + 1;
-  mouse.set(x,y);
+document.body.addEventListener("pointerup",()=>dragging=false);
+
+document.body.addEventListener("pointermove",e=>{
+  if(!dragging) return;
+  const dx=e.clientX-prevX;
+  const dy=e.clientY-prevY;
+  prevX=e.clientX; prevY=e.clientY;
+
+  rotY -= dx*0.005;
+  rotX -= dy*0.005;
+  rotX = Math.max(-1.5, Math.min(1.5, rotX));
+});
+
+// Tap action
+document.body.addEventListener("pointerdown",e=>{
+  if(dragging) return;
+
+  mouse.x = (e.clientX/innerWidth)*2-1;
+  mouse.y = -(e.clientY/innerHeight)*2+1;
 
   raycaster.setFromCamera(mouse,camera);
-  let hits = raycaster.intersectObjects(blocks);
+  const hits = raycaster.intersectObjects(meshes);
+  if(hits.length){
+    const p = hits[0].point.clone().addScalar(0.5).floor();
 
-  if(hits.length>0){
-    let hit = hits[0];
+    const k = key(p.x,p.y,p.z);
 
-    // 削除（長押し代わり：Shiftで削除）
-    if(event.shiftKey){
-      scene.remove(hit.object);
-      blocks = blocks.filter(b=>b!==hit.object);
-      return;
+    if(blocks[k]){
+      delete blocks[k]; // break
+    } else {
+      blocks[k]=currentBlock;
     }
-
-    // 追加
-    let pos = hit.object.position.clone().add(hit.face.normal);
-    makeBlock(pos.x,pos.y,pos.z,colorFromType(selected));
+    rebuild();
   }
+});
+
+// =====================
+// Animate
+// =====================
+function updateCamera(){
+  const radius = 30;
+  camera.position.x = Math.cos(rotY)*Math.cos(rotX)*radius + SIZE/2;
+  camera.position.y = Math.sin(rotX)*radius + 10;
+  camera.position.z = Math.sin(rotY)*Math.cos(rotX)*radius + SIZE/2;
+  camera.lookAt(SIZE/2,5,SIZE/2);
 }
-
-window.addEventListener('click', onTap);
-
-// シンプルカメラ回転（指ドラッグ）
-let dragging=false, prevX=0, prevY=0;
-
-window.addEventListener('pointerdown', e=>{
-  dragging=true;
-  prevX=e.clientX;
-  prevY=e.clientY;
-});
-
-window.addEventListener('pointerup', ()=>dragging=false);
-
-window.addEventListener('pointermove', e=>{
-  if(!dragging) return;
-
-  let dx = e.clientX - prevX;
-  let dy = e.clientY - prevY;
-
-  camera.position.x -= dx*0.01;
-  camera.position.y += dy*0.01;
-
-  prevX=e.clientX;
-  prevY=e.clientY;
-});
-
-// ズーム
-window.addEventListener('wheel', e=>{
-  camera.position.z += e.deltaY*0.01;
-});
 
 function animate(){
   requestAnimationFrame(animate);
+
+  updateCamera();
+
+  // simple day/night
+  const t = Date.now()*0.0002;
+  light.intensity = 0.5 + Math.sin(t)*0.3;
+  scene.background = new THREE.Color(0.5 + Math.sin(t)*0.2,0.7,1);
+
   renderer.render(scene,camera);
 }
 animate();
 
-window.addEventListener('resize', ()=>{
-  camera.aspect = innerWidth/innerHeight;
+window.addEventListener("resize",()=>{
+  camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(innerWidth,innerHeight);
 });
 </script>
-
 </body>
 </html>
