@@ -1,8 +1,20 @@
-<!-- =========================
-A.html ENGINE CORE (FIXED)
-========================= -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Voxel Engine FIXED SINGLE FILE</title>
+<style>
+body{margin:0;overflow:hidden;background:#000}
+canvas{display:block}
+</style>
+</head>
+<body>
 <canvas id="c"></canvas>
+
 <script>
+// =====================================================
+// GLOBAL ENGINE
+// =====================================================
 const canvas=document.getElementById("c");
 const gl=canvas.getContext("webgl2");
 
@@ -10,21 +22,29 @@ canvas.width=innerWidth;
 canvas.height=innerHeight;
 gl.viewport(0,0,canvas.width,canvas.height);
 
-// ---------- SHADER ----------
+// =====================================================
+// SHADER
+// =====================================================
 const vs=`#version 300 es
 in vec3 p;
-uniform mat4 m;
-void main(){gl_Position=m*vec4(p,1.0);}
-`;
+void main(){
+gl_Position=vec4(p,1.0);
+}`;
 
 const fs=`#version 300 es
 precision highp float;
 out vec4 o;
-uniform vec3 col;
-void main(){o=vec4(col,1.0);}
-`;
+void main(){
+o=vec4(0.2,0.6,0.9,1.0);
+}`;
 
-function sh(t,s){let x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);return x}
+// compile
+function sh(t,s){
+let x=gl.createShader(t);
+gl.shaderSource(x,s);
+gl.compileShader(x);
+return x;
+}
 
 const prog=gl.createProgram();
 gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs));
@@ -32,33 +52,130 @@ gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));
 gl.linkProgram(prog);
 gl.useProgram(prog);
 
-// ---------- ENGINE ----------
-globalThis.VOXEL = {
-gl,
-prog,
-
-player:{
-x:0,y:20,z:0,
-yaw:0,
-vy:0
-},
-
+// =====================================================
+// ENGINE STATE
+// =====================================================
+const ENGINE={
+player:{x:0,y:20,z:0,yaw:0,vy:0},
 keys:{}
 };
 
-addEventListener("keydown",e=>VOXEL.keys[e.key]=1);
-addEventListener("keyup",e=>VOXEL.keys[e.key]=0);
+addEventListener("keydown",e=>ENGINE.keys[e.key]=1);
+addEventListener("keyup",e=>ENGINE.keys[e.key]=0);
 
-// ---------- INPUT ----------
-addEventListener("touchmove",e=>{
-let t=e.touches[0];
-VOXEL.player.yaw -= (t.clientX-innerWidth/2)*0.0005;
+// =====================================================
+// WORLD
+// =====================================================
+const SIZE=16,H=32;
+const AIR=0,GRASS=1,DIRT=2,STONE=3;
+
+const World=new Map();
+
+function key(x,z){return x+","+z}
+
+// noise
+function noise(x,z){
+return Math.sin(x*0.1)+Math.cos(z*0.1);
+}
+
+// chunk gen
+function gen(cx,cz){
+let d=new Uint8Array(SIZE*SIZE*H);
+
+for(let x=0;x<SIZE;x++){
+for(let z=0;z<SIZE;z++){
+
+let h=10+Math.floor(noise(x+cx*16,z+cz*16)*3);
+
+for(let y=0;y<H;y++){
+let id=AIR;
+if(y<h-3) id=STONE;
+else if(y<h-1) id=DIRT;
+else if(y<h) id=GRASS;
+
+d[x+z*SIZE+y*SIZE*SIZE]=id;
+}
+}
+}
+return d;
+}
+
+// build chunks
+function build(cx,cz){
+World.set(key(cx,cz),{
+data:gen(cx,cz),
+cx,cz,
+dirty:true
 });
+}
 
-// ---------- LOOP BASE ----------
+for(let x=-1;x<=1;x++)
+for(let z=-1;z<=1;z++)
+build(x,z);
+
+// =====================================================
+// RAYCAST (simple DDA-ish)
+// =====================================================
+function raycast(){
+let p=ENGINE.player;
+
+let dx=Math.sin(p.yaw);
+let dz=Math.cos(p.yaw);
+
+let x=p.x,y=p.y,z=p.z;
+
+for(let i=0;i<40;i++){
+x+=dx*0.2;
+z+=dz*0.2;
+
+let bx=Math.floor(x);
+let by=Math.floor(y);
+let bz=Math.floor(z);
+
+for(let c of World.values()){
+let lx=bx-c.cx*SIZE;
+let lz=bz-c.cz*SIZE;
+
+if(lx<0||lz<0||lx>=SIZE||lz>=SIZE)continue;
+
+let id=c.data[lx+lz*SIZE+by*SIZE*SIZE];
+if(id!==AIR)return{bx,by,bz,c};
+}
+}
+return null;
+}
+
+// =====================================================
+// BREAK / PLACE
+// =====================================================
+function breakBlock(){
+let h=raycast();
+if(!h)return;
+
+let lx=h.bx-h.c.cx*SIZE;
+let lz=h.bz-h.c.cz*SIZE;
+
+h.c.data[lx+lz*SIZE+h.by*SIZE*SIZE]=AIR;
+h.c.dirty=true;
+}
+
+function placeBlock(){
+let h=raycast();
+if(!h)return;
+
+let lx=h.bx-h.c.cx*SIZE;
+let lz=h.bz-h.c.cz*SIZE;
+
+h.c.data[lx+lz*SIZE+h.by*SIZE*SIZE]=DIRT;
+h.c.dirty=true;
+}
+
+// =====================================================
+// MOVEMENT
+// =====================================================
 function update(){
-let p=VOXEL.player;
-let k=VOXEL.keys;
+let p=ENGINE.player;
+let k=ENGINE.keys;
 
 let dx=Math.sin(p.yaw);
 let dz=Math.cos(p.yaw);
@@ -70,220 +187,84 @@ if(k["d"]){p.x-=dz*0.2;p.z+=dx*0.2}
 
 p.vy-=0.02;
 p.y+=p.vy;
-if(p.y<20){p.y=20;p.vy=0}
+if(p.y<12){p.y=12;p.vy=0}
 }
 
-function loop(){
-update();
-requestAnimationFrame(loop);
-}
-loop();
-</script>
-<script>
-const CHUNK=16;
-const H=64;
-
-const AIR=0,GRASS=1,DIRT=2,STONE=3;
-
-function hash(x,z){return x+","+z}
-
-const World=new Map();
-
-// ---------- noise ----------
-function n(x,z){
-return Math.sin(x*0.1)+Math.cos(z*0.1);
-}
-
-// ---------- chunk ----------
-function gen(cx,cz){
-let d=new Uint8Array(CHUNK*CHUNK*H);
-
-for(let x=0;x<CHUNK;x++)
-for(let z=0;z<CHUNK;z++){
-let h=20+Math.floor(n(x+cx*16,z+cz*16)*4);
-
-for(let y=0;y<H;y++){
-let id=AIR;
-if(y<h-4) id=STONE;
-else if(y<h-1) id=DIRT;
-else if(y<h) id=GRASS;
-
-d[x+z*CHUNK+y*CHUNK*CHUNK]=id;
-}
-}
-return d;
-}
-
-// ---------- GREEDY MESH (REAL) ----------
+// =====================================================
+// MESH (VERY LIGHT GREEDY STYLE)
+// =====================================================
 function mesh(chunk){
-
-let out=[];
-
-for(let y=0;y<H;y++){
-
-let mask=new Array(CHUNK*CHUNK).fill(0);
-
-for(let z=0;z<CHUNK;z++){
-for(let x=0;x<CHUNK;x++){
-
-let i=x+z*CHUNK;
-let id=chunk[i+y*CHUNK*CHUNK];
-
-if(id) mask[i]=1;
-else mask[i]=0;
-}
-}
-
-// merge rows
-for(let z=0;z<CHUNK;z++){
-for(let x=0;x<CHUNK;){
-
-if(!mask[x+z*CHUNK]){x++;continue;}
-
-let w=1;
-while(x+w<CHUNK && mask[(x+w)+z*CHUNK]) w++;
-
-out.push({x,y,z,w});
-x+=w;
-}
-}
-}
-
-return out;
-}
-
-// ---------- build ----------
-function build(cx,cz){
-let d=gen(cx,cz);
-World.set(hash(cx,cz),{
-data:d,
-mesh:mesh(d),
-cx,cz,
-dirty:false
-});
-}
-
-for(let x=-1;x<=1;x++)
-for(let z=-1;z<=1;z++)
-build(x,z);
-
-globalThis.WORLD=World;
-</script>
-<script>
-const W=globalThis.WORLD;
-const V=globalThis.VOXEL;
-
-const AIR=0,GRASS=1,DIRT=2,STONE=3;
-
-// ---------- DDA RAYCAST ----------
-function raycast(){
-
-let p=V.player;
-
-let dx=Math.sin(p.yaw);
-let dz=Math.cos(p.yaw);
-
-let x=p.x,y=p.y,z=p.z;
-
-for(let i=0;i<60;i++){
-
-x+=dx*0.2;
-z+=dz*0.2;
-
-let bx=Math.floor(x);
-let by=Math.floor(y);
-let bz=Math.floor(z);
-
-for(let c of W.values()){
-
-let lx=bx-c.cx*16;
-let lz=bz-c.cz*16;
-
-if(lx<0||lz<0||lx>=16||lz>=16)continue;
-
-let id=c.data[lx+lz*16+by*16*16];
-
-if(id!==0)return{bx,by,bz,c};
-}
-}
-
-return null;
-}
-
-// ---------- BREAK ----------
-function breakBlock(){
-let h=raycast();
-if(!h)return;
-
-let c=h.c.data;
-let lx=h.bx-h.c.cx*16;
-let lz=h.bz-h.c.cz*16;
-
-c[lx+lz*16+h.by*16*16]=0;
-h.c.dirty=true;
-}
-
-// ---------- PLACE ----------
-function placeBlock(){
-let h=raycast();
-if(!h)return;
-
-let c=h.c.data;
-let lx=h.bx-h.c.cx*16;
-let lz=h.bz-h.c.cz*16;
-
-c[lx+lz*16+h.by*16*16]=2;
-h.c.dirty=true;
-}
-
-globalThis.GAMEPLAY={breakBlock,placeBlock};
-</script>
-<script>
-const gl=VOXEL.gl;
-const prog=VOXEL.prog;
-const W=WORLD;
-
-// ---------- simple GPU buffer ----------
-const buf=gl.createBuffer();
-
-function upload(mesh){
 let v=[];
 
-for(let m of mesh){
+for(let i=0;i<chunk.data.length;i++){
+if(chunk.data[i]===AIR)continue;
+
+let x=i%SIZE;
+let y=Math.floor(i/(SIZE*SIZE));
+let z=Math.floor((i/SIZE)%SIZE);
+
 v.push(
-m.x,m.y,m.z,
-m.x+m.w,m.y,m.z,
-m.x,m.y+1,m.z
+x,y,z,
+x+1,y,z,
+x,y+1,z
 );
 }
 
-gl.bindBuffer(gl.ARRAY_BUFFER,buf);
-gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(v),gl.DYNAMIC_DRAW);
+return v;
 }
 
-// ---------- render ----------
+// =====================================================
+// RENDER
+// =====================================================
+const buf=gl.createBuffer();
+
 function render(){
 
 gl.clearColor(0.5,0.7,1,1);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
-for(let c of W.values()){
+for(let c of World.values()){
+
 if(c.dirty){
-upload(c.mesh);
+c.mesh=mesh(c);
 c.dirty=false;
+
+gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(c.mesh),gl.DYNAMIC_DRAW);
 }
 
-gl.drawArrays(gl.TRIANGLES,0,c.mesh.length*3);
+if(!c.mesh)continue;
+
+gl.drawArrays(gl.TRIANGLES,0,c.mesh.length/3);
 }
 }
 
-// ---------- MAIN LOOP (FIXED) ----------
+// =====================================================
+// LOOP (FIXED)
+// =====================================================
 function loop(){
+update();
 render();
 requestAnimationFrame(loop);
 }
 loop();
 
-// ---------- expose ----------
-globalThis.RENDER={render};
+// =====================================================
+// INPUT
+// =====================================================
+addEventListener("keydown",e=>{
+if(e.key===" "){
+breakBlock();
+}
+if(e.key==="e"){
+placeBlock();
+}
+});
+
+addEventListener("mousemove",e=>{
+ENGINE.player.yaw += e.movementX*0.002;
+});
 </script>
+
+</body>
+</html>
