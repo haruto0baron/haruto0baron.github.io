@@ -2,13 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ワンキーシューティング</title>
+<title>ワンキー回転ラン</title>
 <style>
   body {
     margin: 0;
     overflow: hidden;
     background: black;
-    touch-action: manipulation;
+    touch-action: none;
   }
   canvas {
     display: block;
@@ -23,88 +23,142 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
+// ===== プレイヤー =====
 let player = {
   x: canvas.width / 2,
-  y: canvas.height - 60,
-  size: 20
+  y: canvas.height / 2,
+  angle: 0,
+  speed: 0,
+  size: 12
 };
 
-let bullets = [];
-let enemies = [];
+let pressing = false;
 let score = 0;
 let gameOver = false;
 
-// タップで発射
-document.addEventListener("click", shoot);
-document.addEventListener("touchstart", shoot);
-
-function shoot() {
-  if (gameOver) return;
-  bullets.push({ x: player.x, y: player.y });
+// ===== 星背景 =====
+let stars = [];
+for (let i = 0; i < 120; i++) {
+  stars.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    z: Math.random() * 2
+  });
 }
 
-// 敵生成
+// ===== 敵 & コイン =====
+let enemies = [];
+let coins = [];
+
 setInterval(() => {
   enemies.push({
     x: Math.random() * canvas.width,
-    y: -20,
-    size: 20,
-    speed: 2 + Math.random() * 2
+    y: Math.random() * canvas.height,
+    size: 15
   });
-}, 800);
+}, 1500);
 
-// 更新処理
+setInterval(() => {
+  coins.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    size: 10,
+    pulse: 0
+  });
+}, 1200);
+
+// ===== 入力 =====
+function pressStart() {
+  if (gameOver) return;
+  pressing = true;
+  player.angle += Math.PI / 2; // 90度回転
+}
+function pressEnd() {
+  pressing = false;
+}
+
+addEventListener("mousedown", pressStart);
+addEventListener("mouseup", pressEnd);
+addEventListener("touchstart", pressStart);
+addEventListener("touchend", pressEnd);
+
+// ===== 更新 =====
 function update() {
   if (gameOver) return;
 
-  // 弾移動
-  bullets.forEach(b => b.y -= 6);
+  // 加速 / 減速
+  if (pressing) {
+    player.speed += 0.2;
+  } else {
+    player.speed *= 0.95;
+  }
 
-  // 敵移動
-  enemies.forEach(e => e.y += e.speed);
+  // 速度制限
+  player.speed = Math.min(player.speed, 8);
+
+  // 移動
+  player.x += Math.cos(player.angle) * player.speed;
+  player.y += Math.sin(player.angle) * player.speed;
+
+  // 画面端ループ
+  if (player.x < 0) player.x = canvas.width;
+  if (player.x > canvas.width) player.x = 0;
+  if (player.y < 0) player.y = canvas.height;
+  if (player.y > canvas.height) player.y = 0;
+
+  // 星動き（奥行き風）
+  stars.forEach(s => {
+    s.y += s.z + player.speed * 0.2;
+    if (s.y > canvas.height) {
+      s.y = 0;
+      s.x = Math.random() * canvas.width;
+    }
+  });
+
+  // コインアニメ
+  coins.forEach(c => c.pulse += 0.1);
 
   // 衝突判定
-  enemies.forEach((e, ei) => {
-    bullets.forEach((b, bi) => {
-      let dx = e.x - b.x;
-      let dy = e.y - b.y;
-      let dist = Math.sqrt(dx*dx + dy*dy);
-
-      if (dist < e.size) {
-        enemies.splice(ei, 1);
-        bullets.splice(bi, 1);
-        score++;
-      }
-    });
-
-    // プレイヤーに当たる
+  enemies.forEach(e => {
     let dx = e.x - player.x;
     let dy = e.y - player.y;
-    if (Math.sqrt(dx*dx + dy*dy) < e.size) {
+    if (Math.hypot(dx, dy) < e.size + player.size) {
       gameOver = true;
+    }
+  });
+
+  coins.forEach((c, i) => {
+    let dx = c.x - player.x;
+    let dy = c.y - player.y;
+    if (Math.hypot(dx, dy) < c.size + player.size) {
+      coins.splice(i, 1);
+      score++;
     }
   });
 }
 
-// 描画
+// ===== 描画 =====
 function draw() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // プレイヤー
-  ctx.fillStyle = "cyan";
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, player.size, 0, Math.PI*2);
-  ctx.fill();
+  // 星
+  ctx.fillStyle = "white";
+  stars.forEach(s => {
+    ctx.globalAlpha = s.z / 2;
+    ctx.fillRect(s.x, s.y, 2, 2);
+  });
+  ctx.globalAlpha = 1;
 
-  // 弾
-  ctx.fillStyle = "yellow";
-  bullets.forEach(b => {
+  // コイン（アニメーション）
+  coins.forEach(c => {
+    let scale = 1 + Math.sin(c.pulse) * 0.3;
+    ctx.fillStyle = "gold";
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 5, 0, Math.PI*2);
+    ctx.arc(c.x, c.y, c.size * scale, 0, Math.PI * 2);
     ctx.fill();
   });
 
@@ -112,9 +166,22 @@ function draw() {
   ctx.fillStyle = "red";
   enemies.forEach(e => {
     ctx.beginPath();
-    ctx.arc(e.x, e.y, e.size, 0, Math.PI*2);
+    ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
     ctx.fill();
   });
+
+  // プレイヤー（進行方向付き）
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.rotate(player.angle);
+  ctx.fillStyle = "cyan";
+  ctx.beginPath();
+  ctx.moveTo(15, 0);
+  ctx.lineTo(-10, -8);
+  ctx.lineTo(-10, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 
   // スコア
   ctx.fillStyle = "white";
@@ -123,23 +190,22 @@ function draw() {
 
   if (gameOver) {
     ctx.font = "40px sans-serif";
-    ctx.fillText("GAME OVER", canvas.width/2 - 120, canvas.height/2);
+    ctx.fillText("GAME OVER", canvas.width/2 - 140, canvas.height/2);
   }
 }
 
-// ループ
+// ===== ループ =====
 function loop() {
   update();
   draw();
   requestAnimationFrame(loop);
 }
-
 loop();
 
-// 画面リサイズ対応
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+// リサイズ
+addEventListener("resize", () => {
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
 });
 </script>
 
