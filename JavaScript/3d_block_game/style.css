@@ -1,0 +1,13 @@
+body {
+  margin:0;
+  overflow:hidden;
+  background:#000;
+}
+
+#hud {
+  position:fixed;
+  bottom:10px;
+  left:10px;
+  color:white;
+  font-family:sans-serif;
+}
