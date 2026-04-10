@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>回転ラン改良版</title>
+<title>ワンキー回転ラン</title>
 <style>
   body {
     margin: 0;
@@ -24,7 +24,7 @@ const ctx = canvas.getContext("2d");
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-// ===== プレイヤー（中央固定） =====
+// ===== プレイヤー =====
 const player = {
   x: canvas.width / 2,
   y: canvas.height / 2,
@@ -34,35 +34,41 @@ const player = {
 };
 
 let pressing = false;
-let rotated = false; // ←これがバグ防止
+let prevPressing = false;
 let score = 0;
 let gameOver = false;
 
-// ===== 星（遠近感）=====
+// ===== スクリーンシェイク =====
+let shake = 0;
+
+// ===== 星（遠近）=====
 let stars = [];
-for (let i = 0; i < 150; i++) {
+for (let i = 0; i < 160; i++) {
   stars.push({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
-    depth: Math.random() * 3 // 奥行き
+    depth: Math.random() * 3
   });
 }
 
-// ===== ワールドオフセット =====
+// ===== ワールド =====
 let worldOffset = { x: 0, y: 0 };
 
-// ===== 敵 & コイン =====
+// ===== 敵・コイン =====
 let enemies = [];
 let coins = [];
+let particles = [];
 
+// 敵
 setInterval(() => {
   enemies.push({
     x: worldOffset.x + Math.random() * canvas.width,
     y: worldOffset.y + Math.random() * canvas.height,
     size: 15
   });
-}, 1500);
+}, 1200);
 
+// コイン
 setInterval(() => {
   coins.push({
     x: worldOffset.x + Math.random() * canvas.width,
@@ -70,22 +76,16 @@ setInterval(() => {
     size: 10,
     pulse: 0
   });
-}, 1200);
+}, 900);
 
 // ===== 入力 =====
 function pressStart() {
   if (gameOver) return;
   pressing = true;
-
-  if (!rotated) {
-    player.angle += Math.PI / 2;
-    rotated = true;
-  }
 }
 
 function pressEnd() {
   pressing = false;
-  rotated = false;
 }
 
 addEventListener("mousedown", pressStart);
@@ -93,17 +93,48 @@ addEventListener("mouseup", pressEnd);
 addEventListener("touchstart", pressStart);
 addEventListener("touchend", pressEnd);
 
+// ===== リスタート =====
+function resetGame() {
+  score = 0;
+  gameOver = false;
+  player.angle = 0;
+  player.speed = 0;
+  enemies = [];
+  coins = [];
+  particles = [];
+  worldOffset = { x: 0, y: 0 };
+}
+
+// ===== パーティクル =====
+function explode(x, y) {
+  for (let i = 0; i < 18; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 5,
+      vy: (Math.random() - 0.5) * 5,
+      life: 1
+    });
+  }
+}
+
 // ===== 更新 =====
 function update() {
+  // リスタート
   if (gameOver) return;
 
-  // 加速 / 減速
-  if (pressing) player.speed += 0.2;
-  else player.speed *= 0.95;
+  // 1タップ1回転（バグ修正済み）
+  if (pressing && !prevPressing) {
+    player.angle += Math.PI / 2;
+  }
+  prevPressing = pressing;
+
+  // 加速・減速
+  if (pressing) player.speed += 0.25;
+  else player.speed *= 0.94;
 
   player.speed = Math.min(player.speed, 8);
 
-  // ワールド移動（スクロール）
+  // スクロール
   worldOffset.x += Math.cos(player.angle) * player.speed;
   worldOffset.y += Math.sin(player.angle) * player.speed;
 
@@ -119,40 +150,65 @@ function update() {
   });
 
   // コインアニメ
-  coins.forEach(c => c.pulse += 0.1);
+  coins.forEach(c => c.pulse += 0.15);
 
-  // 衝突判定
+  // パーティクル
+  particles.forEach((p, i) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.03;
+    if (p.life <= 0) particles.splice(i, 1);
+  });
+
+  // 敵衝突
   enemies.forEach(e => {
     let dx = e.x - worldOffset.x - player.x;
     let dy = e.y - worldOffset.y - player.y;
+
     if (Math.hypot(dx, dy) < e.size + player.size) {
       gameOver = true;
+      shake = 20;
+      explode(player.x, player.y);
     }
   });
 
+  // コイン取得
   coins.forEach((c, i) => {
     let dx = c.x - worldOffset.x - player.x;
     let dy = c.y - worldOffset.y - player.y;
+
     if (Math.hypot(dx, dy) < c.size + player.size) {
       coins.splice(i, 1);
       score++;
+      explode(player.x, player.y);
     }
   });
+
+  if (shake > 0) shake--;
 }
 
 // ===== 描画 =====
 function draw() {
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // シェイク
+  let sx = (Math.random() - 0.5) * shake;
+  let sy = (Math.random() - 0.5) * shake;
 
-  // 星（奥行きでサイズ＆明るさ変化）
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  // 背景
+  ctx.fillStyle = "black";
+  ctx.fillRect(-sx, -sy, canvas.width, canvas.height);
+
+  // 星空（遠近）
   stars.forEach(s => {
     ctx.globalAlpha = 0.3 + s.depth * 0.3;
+    ctx.fillStyle = "white";
     ctx.fillRect(s.x, s.y, 1 + s.depth, 1 + s.depth);
   });
   ctx.globalAlpha = 1;
 
-  // コイン
+  // コイン（アニメ）
   coins.forEach(c => {
     let x = c.x - worldOffset.x;
     let y = c.y - worldOffset.y;
@@ -175,11 +231,20 @@ function draw() {
     ctx.fill();
   });
 
-  // プレイヤー
+  // パーティクル
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = "cyan";
+    ctx.fillRect(p.x, p.y, 3, 3);
+  });
+  ctx.globalAlpha = 1;
+
+  // プレイヤー（色変化）
+  let hue = (Date.now() / 10) % 360;
   ctx.save();
   ctx.translate(player.x, player.y);
   ctx.rotate(player.angle);
-  ctx.fillStyle = "cyan";
+  ctx.fillStyle = `hsl(${hue},100%,60%)`;
   ctx.beginPath();
   ctx.moveTo(15, 0);
   ctx.lineTo(-10, -8);
@@ -196,7 +261,11 @@ function draw() {
   if (gameOver) {
     ctx.font = "40px sans-serif";
     ctx.fillText("GAME OVER", canvas.width/2 - 140, canvas.height/2);
+    ctx.font = "20px sans-serif";
+    ctx.fillText("Tap to Restart", canvas.width/2 - 80, canvas.height/2 + 40);
   }
+
+  ctx.restore();
 }
 
 // ===== ループ =====
@@ -207,6 +276,15 @@ function loop() {
 }
 loop();
 
+// ===== リスタート入力 =====
+addEventListener("click", () => {
+  if (gameOver) resetGame();
+});
+addEventListener("touchstart", () => {
+  if (gameOver) resetGame();
+});
+
+// ===== リサイズ =====
 addEventListener("resize", () => {
   canvas.width = innerWidth;
   canvas.height = innerHeight;
