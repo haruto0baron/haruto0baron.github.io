@@ -146,7 +146,6 @@ footer{
 
 <script>
 function updateStatus(){
-function updateStatus(){
     fetch("https://api.mcsrvstat.us/bedrock/2/around-enterprises.gl.at.ply.gg:13680")
     .then(res => {
         if (!res.ok) throw new Error("HTTPエラー: " + res.status);
@@ -169,7 +168,6 @@ function updateStatus(){
         console.error(err); // ←原因表示
         document.getElementById("status").innerText = "取得失敗: " + err.message;
     });
-}
 }
 
 updateStatus();
