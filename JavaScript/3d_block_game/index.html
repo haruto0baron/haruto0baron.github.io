@@ -698,5 +698,227 @@ updateGameplay
 console.log("C loaded: Gameplay system ready");
 
 </script>
+  <!-- =====================================================
+D.html - FINAL SYSTEMS
+AI / DayNight / Fluid / Save / Optimization / Loop
+===================================================== -->
+
+<script>
+
+// =====================================================
+// IMPORT ALL SYSTEMS
+// =====================================================
+const Engine = window.Engine;
+const W = window.WorldEngine;
+const G = window.Gameplay;
+
+// =====================================================
+// WORLD STATE ACCESS
+// =====================================================
+const World = W.World;
+
+// =====================================================
+// TIME SYSTEM (DAY/NIGHT)
+// =====================================================
+let time = 0;
+let daySpeed = 0.01;
+
+function updateDayNight(){
+
+time += daySpeed;
+
+const light = Math.sin(time) * 0.5 + 0.5;
+
+// apply to renderer
+Engine.gl.clearColor(
+0.2 + light * 0.5,
+0.4 + light * 0.4,
+0.8 + light * 0.2,
+1.0
+);
+
+}
+
+// =====================================================
+// MOB SYSTEM (ZOMBIE AI CORE)
+// =====================================================
+
+class Zombie{
+constructor(x,y,z){
+this.x=x;
+this.y=y;
+this.z=z;
+this.hp=20;
+this.speed=0.02;
+}
+
+update(player){
+
+const dx = player.x - this.x;
+const dz = player.z - this.z;
+
+const dist = Math.sqrt(dx*dx+dz*dz);
+
+// follow player
+if(dist < 20){
+
+this.x += dx * this.speed;
+this.z += dz * this.speed;
+
+// attack
+if(dist < 1.5){
+player.hp -= 0.1;
+}
+}
+}
+
+}
+
+// spawn mobs
+const Mobs = [];
+
+for(let i=0;i<10;i++){
+Mobs.push(new Zombie(
+Math.random()*50,
+20,
+Math.random()*50
+));
+}
+
+// =====================================================
+// FLUID SYSTEM (WATER / LAVA SIMPLE CA)
+// =====================================================
+
+function updateFluids(){
+
+for(const chunk of World.values()){
+
+const d = chunk.data;
+
+// random diffusion (optimized placeholder CA)
+for(let i=0;i<d.length;i++){
+
+// water spread
+if(d[i] === 0 && Math.random() < 0.0002){
+d[i] = 6; // water id (future expansion)
+}
+
+}
+
+}
+
+}
+
+// =====================================================
+// SAVE SYSTEM (CHUNK SERIALIZATION)
+// =====================================================
+
+function saveWorld(){
+
+const saveData = {};
+
+for(const [key,chunk] of World){
+
+saveData[key] = {
+data: Array.from(chunk.data),
+cx: chunk.cx,
+cz: chunk.cz
+};
+
+}
+
+localStorage.setItem("VOXEL_SAVE",JSON.stringify(saveData));
+
+}
+
+function loadWorld(){
+
+const raw = localStorage.getItem("VOXEL_SAVE");
+if(!raw) return;
+
+const data = JSON.parse(raw);
+
+for(const k in data){
+
+const c = data[k];
+
+World.set(k,{
+data: Uint8Array.from(c.data),
+cx:c.cx,
+cz:c.cz
+});
+
+}
+
+}
+
+// auto load
+loadWorld();
+
+// =====================================================
+// CHUNK OPTIMIZATION (dirty system)
+// =====================================================
+
+const DirtyChunks = new Set();
+
+function markDirty(chunk){
+DirtyChunks.add(chunk);
+}
+
+function updateChunks(){
+
+for(const c of DirtyChunks){
+W.generateGreedyMesh(c.data);
+}
+DirtyChunks.clear();
+
+}
+
+// =====================================================
+// MAIN GAME LOOP (FINAL INTEGRATION)
+// =====================================================
+
+function gameLoop(){
+
+// update systems
+updateDayNight();
+updateFluids();
+updateChunks();
+
+// mobs
+for(const m of Mobs){
+m.update(Engine.state.player);
+}
+
+// gameplay
+G.updateGameplay();
+
+// physics (basic gravity sync)
+Engine.state.player.y -= 0.02;
+if(Engine.state.player.y < 20){
+Engine.state.player.y = 20;
+}
+
+// render call
+Engine.gl.clear(Engine.gl.COLOR_BUFFER_BIT);
+
+requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+
+// =====================================================
+// GLOBAL CONTROLS
+// =====================================================
+
+window.saveWorld = saveWorld;
+window.loadWorld = loadWorld;
+
+// =====================================================
+// DEBUG INFO
+// =====================================================
+console.log("D loaded: FINAL SYSTEMS ACTIVE");
+
+</script>
 </body>
 </html>
