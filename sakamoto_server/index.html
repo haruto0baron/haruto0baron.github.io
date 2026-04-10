@@ -116,7 +116,8 @@ footer{
         <h2>SAKAMOTO server</h2>
         <p>建築・サバイバル・PVPに対応したマルチサーバー</p>
 
-        <p><strong>IP:</strong> 準備中</p>
+        <p><strong>IP:</strong> around-enterprises.gl.at.ply.gg</p>
+        <p><strong>ポート:</strong> 13680</p>
 
         <p class="status" id="status">状態確認中...</p>
 
@@ -144,7 +145,7 @@ footer{
 
 <script>
 function updateStatus(){
-    fetch("https://api.mcsrvstat.us/2/play.sakamoto-server.com")
+    fetch("https://api.mcsrvstat.us/2/around-enterprises.gl.at.ply.gg")
     .then(res => res.json())
     .then(data => {
         const status = document.getElementById("status");
