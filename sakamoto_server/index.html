@@ -2,85 +2,89 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>SAKAMOTO server 公式ブログ</title>
+<title>Haruto0baron site</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: sans-serif;
-  background: #f5f6fa;
-  color: #333;
+*{box-sizing:border-box;}
+
+body{
+    margin:0;
+    font-family:"Segoe UI",sans-serif;
+    background:#f5f7fb;
+    color:#333;
 }
 
-header {
-  background: #1e272e;
-  color: white;
-  padding: 25px;
-  text-align: center;
+/* ヘッダー */
+header{
+    background:white;
+    border-bottom:1px solid #e0e0e0;
+    padding:15px 30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
 }
 
-header h1 {
-  margin: 0;
+header h1{
+    margin:0;
+    font-size:22px;
+    font-weight:600;
 }
 
-.container {
-  max-width: 800px;
-  margin: auto;
-  padding: 20px;
+/* ナビ */
+nav a{
+    margin-left:20px;
+    text-decoration:none;
+    color:#555;
+    font-size:14px;
+    transition:0.2s;
 }
 
-.post {
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+nav a:hover{
+    color:#000;
 }
 
-.badge {
-  display: inline-block;
-  background: #e74c3c;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 5px;
-  font-size: 12px;
-  margin-bottom: 10px;
+/* セクション */
+section{
+    max-width:900px;
+    margin:40px auto;
+    padding:0 20px;
 }
 
-.tags span {
-  background: #3498db;
-  color: white;
-  padding: 5px 8px;
-  border-radius: 5px;
-  margin-right: 5px;
-  font-size: 12px;
+/* カード */
+.card{
+    background:white;
+    padding:25px;
+    border-radius:14px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.05);
+    margin-bottom:20px;
 }
 
-.ip {
-  background: #ecf0f1;
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: bold;
-  margin: 10px 0;
+/* ボタン */
+.button{
+    display:inline-block;
+    padding:10px 18px;
+    background:#007aff;
+    color:white;
+    text-decoration:none;
+    border-radius:8px;
+    font-size:14px;
 }
 
-button {
-  padding: 8px 15px;
-  border: none;
-  background: #27ae60;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
+.button:hover{
+    background:#0063cc;
 }
 
-button:hover {
-  background: #219150;
+/* ステータス */
+.status{
+    font-weight:bold;
+    margin-top:10px;
 }
 
-footer {
-  text-align: center;
-  padding: 15px;
-  color: #777;
+/* フッター */
+footer{
+    text-align:center;
+    padding:30px;
+    color:#777;
 }
 </style>
 </head>
@@ -88,68 +92,77 @@ footer {
 <body>
 
 <header>
-  <h1>🌍 SAKAMOTO server 公式ブログ</h1>
-  <p>運営からのお知らせ＆サーバー紹介</p>
+    <h1>Haruto0baron</h1>
+    <nav>
+        <a href="#top">Top</a>
+        <a href="#server">Server</a>
+        <a href="#blog">Blog</a>
+    </nav>
 </header>
 
-<div class="container">
-
-  <div class="post">
-    <div class="badge">公式</div>
-    <h2>SAKAMOTO serverについて</h2>
-
-    <div class="tags">
-      <span>建築</span>
-      <span>サバイバル</span>
-      <span>PVP</span>
+<!-- トップ -->
+<section id="top">
+    <div class="card">
+        <h2>トップページ</h2>
+        <p>
+            このサイトでは、制作物や運営しているMinecraftサーバーの情報を掲載しています。
+        </p>
     </div>
+</section>
 
-    <p>
-      こんにちは！SAKAMOTO server運営です。<br><br>
-      このサーバーは「建築・サバイバル・PVP」をすべて楽しめるように設計しています。<br>
-      どんなプレイスタイルの人でも楽しめる環境を目指しています。
-    </p>
+<!-- サーバー -->
+<section id="server">
+    <div class="card">
+        <h2>SAKAMOTO server</h2>
+        <p>建築・サバイバル・PVPに対応したマルチサーバー</p>
 
-    <h3>サーバーの特徴</h3>
-    <ul>
-      <li>自由な建築が可能</li>
-      <li>バランス調整されたPVP</li>
-      <li>サバイバル要素もしっかり</li>
-      <li>初心者歓迎！</li>
-    </ul>
+        <p><strong>IP:</strong> 準備中</p>
 
-    <h3>参加方法</h3>
-    <div class="ip" id="ip">play.sakamoto-server.com</div>
-    <button onclick="copyIP()">IPをコピー</button>
+        <p class="status" id="status">状態確認中...</p>
 
-    <p style="margin-top:15px;">
-      ぜひ気軽に参加してください！<br>
-      みなさんと遊べるのを楽しみにしています！
-    </p>
-  </div>
+        <a class="button" href="sakamoto.html">詳細を見る</a>
+    </div>
+</section>
 
-  <div class="post">
-    <div class="badge">お知らせ</div>
-    <h2>今後のアップデート予定</h2>
-    <ul>
-      <li>新しいPVPイベント追加</li>
-      <li>建築コンテスト開催</li>
-      <li>新ワールドの検討</li>
-    </ul>
-  </div>
+<!-- ブログ -->
+<section id="blog">
+    <div class="card">
+        <h2>ブログ</h2>
+        <p>サーバーの開発状況やアップデート情報を掲載予定です。</p>
 
-</div>
+        <div class="card">
+            <h3>初期開発について</h3>
+            <p>現在、サーバーの基本システムを構築中です。</p>
+        </div>
+    </div>
+</section>
 
 <footer>
-  © 2026 SAKAMOTO server
+    © 2026 Haruto0baron
 </footer>
 
 <script>
-function copyIP() {
-  const ip = document.getElementById("ip").innerText;
-  navigator.clipboard.writeText(ip);
-  alert("IPをコピーしました: " + ip);
+function updateStatus(){
+    fetch("https://api.mcsrvstat.us/2/play.sakamoto-server.com")
+    .then(res => res.json())
+    .then(data => {
+        const status = document.getElementById("status");
+
+        if (data.online) {
+            status.innerText = "オンライン (" + data.players.online + "人)";
+            status.style.color = "green";
+        } else {
+            status.innerText = "オフライン";
+            status.style.color = "red";
+        }
+    })
+    .catch(() => {
+        document.getElementById("status").innerText = "取得失敗";
+    });
 }
+
+updateStatus();
+setInterval(updateStatus, 30000);
 </script>
 
 </body>
