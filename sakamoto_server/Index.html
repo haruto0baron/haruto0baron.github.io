@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>SAKAMOTO server 公式ブログ</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #f5f6fa;
+  color: #333;
+}
+
+header {
+  background: #1e272e;
+  color: white;
+  padding: 25px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+}
+
+.container {
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+}
+
+.post {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.badge {
+  display: inline-block;
+  background: #e74c3c;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.tags span {
+  background: #3498db;
+  color: white;
+  padding: 5px 8px;
+  border-radius: 5px;
+  margin-right: 5px;
+  font-size: 12px;
+}
+
+.ip {
+  background: #ecf0f1;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+button {
+  padding: 8px 15px;
+  border: none;
+  background: #27ae60;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #219150;
+}
+
+footer {
+  text-align: center;
+  padding: 15px;
+  color: #777;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🌍 SAKAMOTO server 公式ブログ</h1>
+  <p>運営からのお知らせ＆サーバー紹介</p>
+</header>
+
+<div class="container">
+
+  <div class="post">
+    <div class="badge">公式</div>
+    <h2>SAKAMOTO serverについて</h2>
+
+    <div class="tags">
+      <span>建築</span>
+      <span>サバイバル</span>
+      <span>PVP</span>
+    </div>
+
+    <p>
+      こんにちは！SAKAMOTO server運営です。<br><br>
+      このサーバーは「建築・サバイバル・PVP」をすべて楽しめるように設計しています。<br>
+      どんなプレイスタイルの人でも楽しめる環境を目指しています。
+    </p>
+
+    <h3>サーバーの特徴</h3>
+    <ul>
+      <li>自由な建築が可能</li>
+      <li>バランス調整されたPVP</li>
+      <li>サバイバル要素もしっかり</li>
+      <li>初心者歓迎！</li>
+    </ul>
+
+    <h3>参加方法</h3>
+    <div class="ip" id="ip">play.sakamoto-server.com</div>
+    <button onclick="copyIP()">IPをコピー</button>
+
+    <p style="margin-top:15px;">
+      ぜひ気軽に参加してください！<br>
+      みなさんと遊べるのを楽しみにしています！
+    </p>
+  </div>
+
+  <div class="post">
+    <div class="badge">お知らせ</div>
+    <h2>今後のアップデート予定</h2>
+    <ul>
+      <li>新しいPVPイベント追加</li>
+      <li>建築コンテスト開催</li>
+      <li>新ワールドの検討</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  © 2026 SAKAMOTO server
+</footer>
+
+<script>
+function copyIP() {
+  const ip = document.getElementById("ip").innerText;
+  navigator.clipboard.writeText(ip);
+  alert("IPをコピーしました: " + ip);
+}
+</script>
+
+</body>
+</html>
