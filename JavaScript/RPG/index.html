@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Memory Square RPG</title>
+<style>
+html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:monospace;}
+canvas{display:block;image-rendering:pixelated;}
+
+#ui{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;}
+
+.panel{
+background:rgba(20,20,30,0.55);
+backdrop-filter: blur(8px);
+border:1px solid rgba(255,255,255,0.12);
+border-radius:12px;
+color:#fff;
+padding:10px;
+}
+
+#topBar{
+position:absolute;top:10px;left:50%;transform:translateX(-50%);
+padding:6px 14px;
+}
+
+#cmd{
+position:absolute;bottom:20px;left:20px;width:200px;
+}
+
+#status{
+position:absolute;bottom:20px;right:20px;width:180px;
+}
+
+#dialog{
+position:absolute;bottom:180px;left:50%;transform:translateX(-50%);
+width:65%;
+display:block;
+min-height:60px;
+}
+
+.small{font-size:12px;opacity:0.8}
+.hidden{display:none!important;}
+
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div id="topBar" class="panel">？？？</div>
+
+  <div id="cmd" class="panel">
+    <div>▶ たたかう</div>
+    <div>▶ まほう</div>
+    <div>▶ ぼうぎょ</div>
+    <div>▶ にげる</div>
+    <div class="small">Enter:決定 / 矢印:移動</div>
+  </div>
+
+  <div id="status" class="panel">
+    HP: <span id="hp">10</span><br>
+    MP: <span id="mp">5</span><br>
+    状態: 未定義
+  </div>
+
+  <div id="dialog" class="panel"></div>
+</div>
+
+<script>
+const canvas=document.getElementById("c");
+const ctx=canvas.getContext("2d");
+
+function resize(){
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+}
+window.addEventListener("resize",resize);
+resize();
+
+// ===== AUDIO =====
+const ac=new (window.AudioContext||window.webkitAudioContext)();
+function beep(f=440,t=0.06){
+const o=ac.createOscillator();
+const g=ac.createGain();
+o.frequency.value=f;
+o.type="square";
+g.gain.value=0.04;
+o.connect(g);g.connect(ac.destination);
+o.start();
+o.stop(ac.currentTime+t);
+}
+
+// ===== STORY =====
+const story=[
+"ここは、データが壊れた世界。",
+"名前は存在しない。",
+"記憶は分解され、四角い断片だけが残った。",
+"",
+"あなたは目を覚ます。",
+"自分が誰か、思い出せない。",
+"ただひとつわかるのは──",
+"この世界は「バグ」で満ちているということ。",
+"",
+"バグは感情を持つ。",
+"怒り、悲しみ、孤独、空白。",
+"それらは形を持って歩き回っている。",
+"",
+"あなたの役目は、それを「修復」すること。",
+"あるいは──消すこと。",
+"",
+"移動して、この世界を確かめなさい。"
+];
+
+let storyIndex=0;
+
+// ===== MAPS =====
+const maps={
+town:[
+"################",
+"#......N.......#",
+"#..............#",
+"#......D.......#",
+"#..............#",
+"################"
+],
+forest:[
+"################",
+"#....E.........#",
+"#..............#",
+"#......D.......#",
+"#..............#",
+"################"
+],
+void:[
+"################",
+"#....E....E....#",
+"#..............#",
+"#......D.......#",
+"#..............#",
+"################"
+]
+};
+
+let scene="town";
+let map=maps[scene];
+
+// ===== PLAYER =====
+let player={x:2,y:2,anim:0};
+
+// ===== STATE =====
+let mode="intro"; // intro, field, dialog, battle
+let dialogText="";
+let canMove=false;
+
+// ===== INPUT =====
+const keys={};
+addEventListener("keydown",e=>{
+keys[e.key]=true;
+
+if(e.key==="Enter"){
+if(mode==="intro"){
+nextStory();
+}
+else if(mode==="dialog"){
+closeDialog();
+}
+else if(mode==="battle"){
+playerAction();
+}
+}
+});
+
+addEventListener("keyup",e=>keys[e.key]=false);
+
+// ===== INTRO =====
+function nextStory(){
+if(storyIndex<story.length){
+dialog(story[storyIndex]);
+storyIndex++;
+}else{
+mode="field";
+canMove=true;
+document.getElementById("topBar").innerText="さびれたスタートタウン";
+dialog("操作可能になりました。移動して「D」に触れてください。");
+}
+}
+
+// ===== DIALOG =====
+function dialog(t){
+mode="dialog";
+dialogText=t;
+document.getElementById("dialog").classList.remove("hidden");
+document.getElementById("dialog").innerText=t;
+}
+
+function closeDialog(){
+document.getElementById("dialog").classList.add("hidden");
+if(mode==="dialog" && storyIndex===0){
+nextStory();
+}
+mode="field";
+}
+
+// ===== COLLISION =====
+function solid(x,y){
+return map[y][x]==="#";
+}
+
+// ===== SCENE =====
+function changeScene(to){
+scene=to;
+map=maps[scene];
+player.x=2;player.y=2;
+
+if(scene==="forest"){
+dialog("ノイズの森へ侵入した。感情バグを検知。");
+}
+if(scene==="void"){
+dialog("空白領域。記憶の断片が暴走している。");
+}
+}
+
+// ===== BATTLE =====
+let bhp=5;
+
+function startBattle(){
+mode="battle";
+bhp=5;
+dialog("感情バグ：孤独型が出現！");
+}
+
+function playerAction(){
+bhp-=1;
+beep(180);
+dialog("記憶の衝撃を与えた！");
+if(bhp<=0){
+dialog("バグは崩壊した。断片を回収した。");
+setTimeout(()=>mode="field",800);
+}
+}
+
+// ===== UPDATE =====
+let tick=0;
+function update(){
+tick++;
+
+if(mode==="field" && canMove){
+let dx=0,dy=0;
+
+if(keys["ArrowUp"])dy=-1;
+if(keys["ArrowDown"])dy=1;
+if(keys["ArrowLeft"])dx=-1;
+if(keys["ArrowRight"])dx=1;
+
+if(tick%8===0 && (dx||dy)){
+const nx=player.x+dx;
+const ny=player.y+dy;
+
+if(!solid(nx,ny)){
+player.x=nx;
+player.y=ny;
+beep(600);
+player.anim=(player.anim+1)%2;
+}
+
+const tile=map[player.y][player.x];
+
+if(tile==="D"){
+changeScene(scene==="town"?"forest":"void");
+}
+
+if(tile==="E"){
+startBattle();
+}
+
+if(tile==="N"){
+dialog("断片NPC：あなたはまだ完全ではない。");
+}
+}
+}
+}
+
+// ===== DRAW =====
+function draw(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+// glow bg
+const g=ctx.createRadialGradient(canvas.width/2,canvas.height/2,100,canvas.width/2,canvas.height/2,600);
+g.addColorStop(0,"#0a0a18");
+g.addColorStop(1,"#000");
+ctx.fillStyle=g;
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+const size=42;
+const ox=canvas.width/2-player.x*size;
+const oy=canvas.height/3-player.y*size;
+
+// map
+for(let y=0;y<map.length;y++){
+for(let x=0;x<map[y].length;x++){
+const t=map[y][x];
+
+let col="#111";
+if(t==="#")col="#2a2a3a";
+if(t==="D")col="#4af";
+if(t==="N")col="#6a6";
+if(t==="E")col="#f55";
+
+const px=ox+x*size;
+const py=oy+y*size;
+
+ctx.shadowColor=col;
+ctx.shadowBlur=12;
+ctx.fillStyle=col;
+ctx.fillRect(px,py,size-2,size-2);
+ctx.shadowBlur=0;
+}
+}
+
+// player
+const px=ox+player.x*size;
+const py=oy+player.y*size;
+
+ctx.shadowColor="#fff";
+ctx.shadowBlur=18;
+ctx.fillStyle="#fff";
+ctx.fillRect(px+10,py+10,22,22);
+
+// face
+ctx.fillStyle="#000";
+ctx.fillRect(px+16,py+18,3,3);
+ctx.fillRect(px+25,py+18,3,3);
+}
+
+// ===== LOOP =====
+function loop(){
+update();
+draw();
+requestAnimationFrame(loop);
+}
+loop();
+
+// start
+dialog("Enterで記憶を開始してください。");
+
+</script>
+</body>
+</html>
