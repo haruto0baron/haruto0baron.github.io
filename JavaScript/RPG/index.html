@@ -2,25 +2,28 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Memory Square RPG</title>
+<title>Memory Square HD-2D RPG</title>
 <style>
-html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:monospace;}
-canvas{display:block;image-rendering:pixelated;}
+html,body{
+margin:0;padding:0;overflow:hidden;background:#000;
+font-family:monospace;
+}
 
-#ui{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;}
+canvas{display:block;}
+
+#ui{position:absolute;inset:0;pointer-events:none;}
 
 .panel{
-background:rgba(20,20,30,0.55);
-backdrop-filter: blur(8px);
+background:rgba(20,20,35,0.55);
+backdrop-filter: blur(10px);
 border:1px solid rgba(255,255,255,0.12);
-border-radius:12px;
+border-radius:14px;
 color:#fff;
 padding:10px;
 }
 
 #topBar{
 position:absolute;top:10px;left:50%;transform:translateX(-50%);
-padding:6px 14px;
 }
 
 #cmd{
@@ -32,15 +35,18 @@ position:absolute;bottom:20px;right:20px;width:180px;
 }
 
 #dialog{
-position:absolute;bottom:180px;left:50%;transform:translateX(-50%);
-width:65%;
-display:block;
-min-height:60px;
+position:absolute;bottom:170px;left:50%;transform:translateX(-50%);
+width:60%;
+display:none;
+}
+
+#miniMap{
+position:absolute;top:10px;right:10px;
+width:160px;height:160px;
+padding:6px;
 }
 
 .small{font-size:12px;opacity:0.8}
-.hidden{display:none!important;}
-
 </style>
 </head>
 <body>
@@ -48,73 +54,45 @@ min-height:60px;
 <canvas id="c"></canvas>
 
 <div id="ui">
-  <div id="topBar" class="panel">？？？</div>
 
-  <div id="cmd" class="panel">
-    <div>▶ たたかう</div>
-    <div>▶ まほう</div>
-    <div>▶ ぼうぎょ</div>
-    <div>▶ にげる</div>
-    <div class="small">Enter:決定 / 矢印:移動</div>
-  </div>
+<div id="topBar" class="panel">さびれたスタートタウン</div>
 
-  <div id="status" class="panel">
-    HP: <span id="hp">10</span><br>
-    MP: <span id="mp">5</span><br>
-    状態: 未定義
-  </div>
+<div id="miniMap" class="panel">
+<canvas id="m" width="140" height="140"></canvas>
+</div>
 
-  <div id="dialog" class="panel"></div>
+<div id="cmd" class="panel">
+<div>▶ たたかう</div>
+<div>▶ まほう</div>
+<div>▶ ぼうぎょ</div>
+<div>▶ にげる</div>
+<div class="small">Enter / 矢印</div>
+</div>
+
+<div id="status" class="panel">
+HP: 10<br>
+MP: 5
+</div>
+
+<div id="dialog" class="panel"></div>
+
 </div>
 
 <script>
 const canvas=document.getElementById("c");
 const ctx=canvas.getContext("2d");
 
+const mini=document.getElementById("m");
+const mctx=mini.getContext("2d");
+
 function resize(){
 canvas.width=innerWidth;
 canvas.height=innerHeight;
 }
-window.addEventListener("resize",resize);
+addEventListener("resize",resize);
 resize();
 
-// ===== AUDIO =====
-const ac=new (window.AudioContext||window.webkitAudioContext)();
-function beep(f=440,t=0.06){
-const o=ac.createOscillator();
-const g=ac.createGain();
-o.frequency.value=f;
-o.type="square";
-g.gain.value=0.04;
-o.connect(g);g.connect(ac.destination);
-o.start();
-o.stop(ac.currentTime+t);
-}
-
-// ===== STORY =====
-const story=[
-"ここは、データが壊れた世界。",
-"名前は存在しない。",
-"記憶は分解され、四角い断片だけが残った。",
-"",
-"あなたは目を覚ます。",
-"自分が誰か、思い出せない。",
-"ただひとつわかるのは──",
-"この世界は「バグ」で満ちているということ。",
-"",
-"バグは感情を持つ。",
-"怒り、悲しみ、孤独、空白。",
-"それらは形を持って歩き回っている。",
-"",
-"あなたの役目は、それを「修復」すること。",
-"あるいは──消すこと。",
-"",
-"移動して、この世界を確かめなさい。"
-];
-
-let storyIndex=0;
-
-// ===== MAPS =====
+// ===== MAP =====
 const maps={
 town:[
 "################",
@@ -146,60 +124,24 @@ let scene="town";
 let map=maps[scene];
 
 // ===== PLAYER =====
-let player={x:2,y:2,anim:0};
-
-// ===== STATE =====
-let mode="intro"; // intro, field, dialog, battle
-let dialogText="";
-let canMove=false;
+let player={x:2,y:2};
 
 // ===== INPUT =====
 const keys={};
-addEventListener("keydown",e=>{
-keys[e.key]=true;
+let lock=0;
 
-if(e.key==="Enter"){
-if(mode==="intro"){
-nextStory();
+addEventListener("keydown",e=>{
+if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)){
+keys[e.key]=true;
+e.preventDefault();
 }
-else if(mode==="dialog"){
-closeDialog();
-}
-else if(mode==="battle"){
-playerAction();
-}
-}
+if(e.key==="Enter")handleEnter();
 });
 
 addEventListener("keyup",e=>keys[e.key]=false);
 
-// ===== INTRO =====
-function nextStory(){
-if(storyIndex<story.length){
-dialog(story[storyIndex]);
-storyIndex++;
-}else{
-mode="field";
-canMove=true;
-document.getElementById("topBar").innerText="さびれたスタートタウン";
-dialog("操作可能になりました。移動して「D」に触れてください。");
-}
-}
-
-// ===== DIALOG =====
-function dialog(t){
-mode="dialog";
-dialogText=t;
-document.getElementById("dialog").classList.remove("hidden");
-document.getElementById("dialog").innerText=t;
-}
-
-function closeDialog(){
-document.getElementById("dialog").classList.add("hidden");
-if(mode==="dialog" && storyIndex===0){
-nextStory();
-}
-mode="field";
+// ===== ENTER =====
+function handleEnter(){
 }
 
 // ===== COLLISION =====
@@ -212,40 +154,12 @@ function changeScene(to){
 scene=to;
 map=maps[scene];
 player.x=2;player.y=2;
-
-if(scene==="forest"){
-dialog("ノイズの森へ侵入した。感情バグを検知。");
-}
-if(scene==="void"){
-dialog("空白領域。記憶の断片が暴走している。");
-}
-}
-
-// ===== BATTLE =====
-let bhp=5;
-
-function startBattle(){
-mode="battle";
-bhp=5;
-dialog("感情バグ：孤独型が出現！");
-}
-
-function playerAction(){
-bhp-=1;
-beep(180);
-dialog("記憶の衝撃を与えた！");
-if(bhp<=0){
-dialog("バグは崩壊した。断片を回収した。");
-setTimeout(()=>mode="field",800);
-}
 }
 
 // ===== UPDATE =====
-let tick=0;
 function update(){
-tick++;
+if(lock>0)lock--;
 
-if(mode==="field" && canMove){
 let dx=0,dy=0;
 
 if(keys["ArrowUp"])dy=-1;
@@ -253,96 +167,132 @@ if(keys["ArrowDown"])dy=1;
 if(keys["ArrowLeft"])dx=-1;
 if(keys["ArrowRight"])dx=1;
 
-if(tick%8===0 && (dx||dy)){
+if((dx||dy) && lock===0){
 const nx=player.x+dx;
 const ny=player.y+dy;
 
 if(!solid(nx,ny)){
 player.x=nx;
 player.y=ny;
-beep(600);
-player.anim=(player.anim+1)%2;
+lock=5;
 }
 
-const tile=map[player.y][player.x];
-
-if(tile==="D"){
-changeScene(scene==="town"?"forest":"void");
+const t=map[player.y][player.x];
+if(t==="D")changeScene(scene==="town"?"forest":"void");
 }
-
-if(tile==="E"){
-startBattle();
 }
 
-if(tile==="N"){
-dialog("断片NPC：あなたはまだ完全ではない。");
-}
-}
-}
+// ===== ISO CAMERA =====
+function iso(x,y,cx,cy){
+const tile=50;
+const px=(x-y)*tile*0.9;
+const py=(x+y)*tile*0.45;
+return [cx+px,cy+py];
 }
 
 // ===== DRAW =====
 function draw(){
+
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-// glow bg
-const g=ctx.createRadialGradient(canvas.width/2,canvas.height/2,100,canvas.width/2,canvas.height/2,600);
-g.addColorStop(0,"#0a0a18");
+const cx=canvas.width/2;
+const cy=canvas.height/2+50;
+
+// bg
+const g=ctx.createRadialGradient(cx,cy,50,cx,cy,700);
+g.addColorStop(0,"#0b0d25");
 g.addColorStop(1,"#000");
 ctx.fillStyle=g;
 ctx.fillRect(0,0,canvas.width,canvas.height);
 
-const size=42;
-const ox=canvas.width/2-player.x*size;
-const oy=canvas.height/3-player.y*size;
-
-// map
+// depth sort
+const objs=[];
 for(let y=0;y<map.length;y++){
 for(let x=0;x<map[y].length;x++){
-const t=map[y][x];
+objs.push({x,y,t:map[y][x]});
+}
+}
+objs.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
+
+// tiles
+for(const o of objs){
+const [px,py]=iso(o.x,o.y,cx,cy);
 
 let col="#111";
-if(t==="#")col="#2a2a3a";
-if(t==="D")col="#4af";
-if(t==="N")col="#6a6";
-if(t==="E")col="#f55";
-
-const px=ox+x*size;
-const py=oy+y*size;
+if(o.t==="#")col="#2a2a3a";
+if(o.t==="D")col="#4af";
+if(o.t==="N")col="#6a6";
+if(o.t==="E")col="#f55";
 
 ctx.shadowColor=col;
 ctx.shadowBlur=12;
+
 ctx.fillStyle=col;
-ctx.fillRect(px,py,size-2,size-2);
+
+// diamond tile
+ctx.beginPath();
+ctx.moveTo(px,py);
+ctx.lineTo(px+25,py+12);
+ctx.lineTo(px,py+25);
+ctx.lineTo(px-25,py+12);
+ctx.closePath();
+ctx.fill();
+
 ctx.shadowBlur=0;
+}
+
+// PLAYER（四角）
+const [px,py]=iso(player.x,player.y,cx,cy);
+
+ctx.shadowColor="#fff";
+ctx.shadowBlur=18;
+
+ctx.fillStyle="#fff";
+ctx.fillRect(px-10,py-10,20,20);
+
+// face
+ctx.fillStyle="#000";
+ctx.fillRect(px-5,py-5,3,3);
+ctx.fillRect(px+2,py-5,3,3);
+}
+
+// ===== MINIMAP =====
+function drawMiniMap(){
+mctx.clearRect(0,0,140,140);
+
+const w=map[0].length;
+const h=map.length;
+
+const sx=140/w;
+const sy=140/h;
+
+for(let y=0;y<h;y++){
+for(let x=0;x<w;x++){
+
+let c="#222";
+if(map[y][x]==="#")c="#444";
+if(map[y][x]==="D")c="#4af";
+if(map[y][x]==="N")c="#6a6";
+if(map[y][x]==="E")c="#f55";
+
+mctx.fillStyle=c;
+mctx.fillRect(x*sx,y*sy,sx,sy);
 }
 }
 
 // player
-const px=ox+player.x*size;
-const py=oy+player.y*size;
-
-ctx.shadowColor="#fff";
-ctx.shadowBlur=18;
-ctx.fillStyle="#fff";
-ctx.fillRect(px+10,py+10,22,22);
-
-// face
-ctx.fillStyle="#000";
-ctx.fillRect(px+16,py+18,3,3);
-ctx.fillRect(px+25,py+18,3,3);
+mctx.fillStyle="#fff";
+mctx.fillRect(player.x*sx,player.y*sy,sx,sy);
 }
 
 // ===== LOOP =====
 function loop(){
 update();
 draw();
+drawMiniMap();
 requestAnimationFrame(loop);
 }
 loop();
-
-// start
-dialog("Enterで記憶を開始してください。");
 
 </script>
 </body>
