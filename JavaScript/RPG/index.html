@@ -27,11 +27,11 @@ position:absolute;top:10px;left:50%;transform:translateX(-50%);
 }
 
 #cmd{
-position:absolute;bottom:20px;left:20px;width:200px;
+position:absolute;bottom:20px;left:20px;width:220px;
 }
 
 #status{
-position:absolute;bottom:20px;right:20px;width:180px;
+position:absolute;bottom:20px;right:20px;width:200px;
 }
 
 #dialog{
@@ -42,8 +42,7 @@ display:none;
 
 #miniMap{
 position:absolute;top:10px;right:10px;
-width:160px;height:160px;
-padding:6px;
+width:150px;height:150px;
 }
 
 .small{font-size:12px;opacity:0.8}
@@ -55,11 +54,9 @@ padding:6px;
 
 <div id="ui">
 
-<div id="topBar" class="panel">さびれたスタートタウン</div>
+<div id="topBar" class="panel">チュートリアル</div>
 
-<div id="miniMap" class="panel">
-<canvas id="m" width="140" height="140"></canvas>
-</div>
+<canvas id="miniMap" class="panel" width="150" height="150"></canvas>
 
 <div id="cmd" class="panel">
 <div>▶ たたかう</div>
@@ -70,8 +67,9 @@ padding:6px;
 </div>
 
 <div id="status" class="panel">
-HP: 10<br>
-MP: 5
+HP: <span id="hp">10</span><br>
+MP: <span id="mp">5</span><br>
+敵: -
 </div>
 
 <div id="dialog" class="panel"></div>
@@ -81,8 +79,7 @@ MP: 5
 <script>
 const canvas=document.getElementById("c");
 const ctx=canvas.getContext("2d");
-
-const mini=document.getElementById("m");
+const mini=document.getElementById("miniMap");
 const mctx=mini.getContext("2d");
 
 function resize(){
@@ -92,41 +89,86 @@ canvas.height=innerHeight;
 addEventListener("resize",resize);
 resize();
 
-// ===== MAP =====
-const maps={
-town:[
+// ================= MAP STAGES =================
+const stages=[
+{
+name:"チュートリアルの崩壊地",
+map:[
 "################",
 "#......N.......#",
 "#..............#",
 "#......D.......#",
 "#..............#",
 "################"
-],
-forest:[
+]
+},
+{
+name:"ノイズの森",
+map:[
 "################",
 "#....E.........#",
-"#..............#",
-"#......D.......#",
-"#..............#",
-"################"
-],
-void:[
-"################",
-"#....E....E....#",
-"#..............#",
+"#......N.......#",
 "#......D.......#",
 "#..............#",
 "################"
 ]
-};
+},
+{
+name:"反転砂漠",
+map:[
+"################",
+"#....E....E....#",
+"#..............#",
+"#......D.......#",
+"#......N.......#",
+"################"
+]
+},
+{
+name:"無音の海",
+map:[
+"################",
+"#....E.........#",
+"#....E.........#",
+"#......D.......#",
+"#......N.......#",
+"################"
+]
+},
+{
+name:"メモリの塔",
+map:[
+"################",
+"#....E....E....#",
+"#....E....E....#",
+"#......D.......#",
+"#......N.......#",
+"################"
+]
+},
+{
+name:"最終領域",
+map:[
+"################",
+"#..............#",
+"#....E....E....#",
+"#....B.........#",
+"#......D.......#",
+"################"
+]
+}
+];
 
-let scene="town";
-let map=maps[scene];
+let stageIndex=0;
+let map=stages[stageIndex].map;
 
-// ===== PLAYER =====
-let player={x:2,y:2};
+// ================= PLAYER =================
+let player={x:2,y:2,rx:2,ry:2};
 
-// ===== INPUT =====
+// ================= CAMERA =================
+let camX=0,camY=0;
+
+// ================= INPUT =================
 const keys={};
 let lock=0;
 
@@ -137,28 +179,113 @@ e.preventDefault();
 }
 if(e.key==="Enter")handleEnter();
 });
-
 addEventListener("keyup",e=>keys[e.key]=false);
 
-// ===== ENTER =====
+// ================= GAME STATE =================
+let mode="field";
+let dialogQueue=[];
+
+// ================= BATTLE =================
+let battle=null;
+
+/*
+battle:
+{enemyHP,maxHP,name}
+*/
+
+// ================= ENTER =================
 function handleEnter(){
+if(mode==="dialog"){
+nextDialog();
+return;
 }
 
-// ===== COLLISION =====
+if(mode==="battle"){
+battleTurn();
+return;
+}
+}
+
+// ================= DIALOG =================
+const dialogBox=document.getElementById("dialog");
+
+function showDialog(t){
+mode="dialog";
+dialogBox.style.display="block";
+dialogBox.innerText=t;
+}
+
+function hideDialog(){
+dialogBox.style.display="none";
+}
+
+function enqueue(t){
+dialogQueue.push(t);
+if(mode==="field")showDialog(dialogQueue.shift());
+}
+
+function nextDialog(){
+if(dialogQueue.length>0){
+showDialog(dialogQueue.shift());
+}else{
+hideDialog();
+mode="field";
+}
+}
+
+// ================= COLLISION =================
 function solid(x,y){
 return map[y][x]==="#";
 }
 
-// ===== SCENE =====
-function changeScene(to){
-scene=to;
-map=maps[scene];
+// ================= STAGE =================
+function nextStage(){
+stageIndex++;
+if(stageIndex>=stages.length){
+showDialog("ゲームクリア：世界は修復された");
+return;
+}
+map=stages[stageIndex].map;
 player.x=2;player.y=2;
+document.getElementById("topBar").innerText=stages[stageIndex].name;
+enqueue("ステージ進行");
 }
 
-// ===== UPDATE =====
+// ================= BATTLE =================
+function startBattle(type="enemy"){
+mode="battle";
+battle={
+name:type==="boss"?"感情バグ・コア":"感情バグ",
+hp:type==="boss"?12:5,
+max:type==="boss"?12:5
+};
+showDialog(battle.name+" 出現！");
+}
+
+function battleTurn(){
+
+// player action simplified (attack only)
+battle.hp-=2;
+
+enqueue("攻撃！");
+if(battle.hp<=0){
+enqueue("撃破！");
+mode="field";
+
+if(battle.name.includes("コア")){
+enqueue("世界のバグが消滅した");
+}else{
+enqueue("断片を回収");
+}
+}
+}
+
+// ================= UPDATE =================
 function update(){
+
 if(lock>0)lock--;
+
+if(mode!=="field")return;
 
 let dx=0,dy=0;
 
@@ -167,45 +294,56 @@ if(keys["ArrowDown"])dy=1;
 if(keys["ArrowLeft"])dx=-1;
 if(keys["ArrowRight"])dx=1;
 
+// smooth movement lock
 if((dx||dy) && lock===0){
+
 const nx=player.x+dx;
 const ny=player.y+dy;
 
 if(!solid(nx,ny)){
 player.x=nx;
 player.y=ny;
-lock=5;
+lock=6;
 }
 
 const t=map[player.y][player.x];
-if(t==="D")changeScene(scene==="town"?"forest":"void");
+
+if(t==="D")nextStage();
+if(t==="E")startBattle();
+if(t==="B")startBattle("boss");
+if(t==="N")enqueue("記憶NPC：この世界は壊れている");
 }
 }
 
-// ===== ISO CAMERA =====
+// ================= CAMERA FOLLOW =================
+function updateCamera(){
+camX += (player.x - camX)*0.12;
+camY += (player.y - camY)*0.12;
+}
+
+// ================= DRAW ISO =================
 function iso(x,y,cx,cy){
-const tile=50;
+const tile=52;
 const px=(x-y)*tile*0.9;
 const py=(x+y)*tile*0.45;
 return [cx+px,cy+py];
 }
 
-// ===== DRAW =====
 function draw(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
 const cx=canvas.width/2;
-const cy=canvas.height/2+50;
+const cy=canvas.height/2+40;
 
-// bg
-const g=ctx.createRadialGradient(cx,cy,50,cx,cy,700);
-g.addColorStop(0,"#0b0d25");
+// bg glow
+const g=ctx.createRadialGradient(cx,cy,50,cx,cy,800);
+g.addColorStop(0,"#101030");
 g.addColorStop(1,"#000");
 ctx.fillStyle=g;
 ctx.fillRect(0,0,canvas.width,canvas.height);
 
-// depth sort
+// tiles
 const objs=[];
 for(let y=0;y<map.length;y++){
 for(let x=0;x<map[y].length;x++){
@@ -214,38 +352,40 @@ objs.push({x,y,t:map[y][x]});
 }
 objs.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
 
-// tiles
+// camera applied
+const ccx=cx - (camX-camY)*52*0.9;
+const ccy=cy - (camX+camY)*52*0.45;
+
 for(const o of objs){
-const [px,py]=iso(o.x,o.y,cx,cy);
+const [px,py]=iso(o.x,o.y,ccx,ccy);
 
 let col="#111";
 if(o.t==="#")col="#2a2a3a";
 if(o.t==="D")col="#4af";
-if(o.t==="N")col="#6a6";
 if(o.t==="E")col="#f55";
+if(o.t==="N")col="#6a6";
+if(o.t==="B")col="#ff0";
 
 ctx.shadowColor=col;
-ctx.shadowBlur=12;
+ctx.shadowBlur=14;
 
 ctx.fillStyle=col;
-
-// diamond tile
 ctx.beginPath();
 ctx.moveTo(px,py);
-ctx.lineTo(px+25,py+12);
-ctx.lineTo(px,py+25);
-ctx.lineTo(px-25,py+12);
+ctx.lineTo(px+26,py+13);
+ctx.lineTo(px,py+26);
+ctx.lineTo(px-26,py+13);
 ctx.closePath();
 ctx.fill();
 
 ctx.shadowBlur=0;
 }
 
-// PLAYER（四角）
-const [px,py]=iso(player.x,player.y,cx,cy);
+// player (square HD-2D)
+const [px,py]=iso(player.x,player.y,ccx,ccy);
 
 ctx.shadowColor="#fff";
-ctx.shadowBlur=18;
+ctx.shadowBlur=20;
 
 ctx.fillStyle="#fff";
 ctx.fillRect(px-10,py-10,20,20);
@@ -256,44 +396,44 @@ ctx.fillRect(px-5,py-5,3,3);
 ctx.fillRect(px+2,py-5,3,3);
 }
 
-// ===== MINIMAP =====
-function drawMiniMap(){
-mctx.clearRect(0,0,140,140);
+// ================= MINIMAP =================
+function drawMini(){
+mctx.clearRect(0,0,150,150);
 
-const w=map[0].length;
-const h=map.length;
-
-const sx=140/w;
-const sy=140/h;
-
-for(let y=0;y<h;y++){
-for(let x=0;x<w;x++){
-
+for(let y=0;y<map.length;y++){
+for(let x=0;x<map[y].length;x++){
 let c="#222";
 if(map[y][x]==="#")c="#444";
-if(map[y][x]==="D")c="#4af";
-if(map[y][x]==="N")c="#6a6";
 if(map[y][x]==="E")c="#f55";
+if(map[y][x]==="N")c="#6a6";
+if(map[y][x]==="D")c="#4af";
+if(map[y][x]==="B")c="#ff0";
 
 mctx.fillStyle=c;
-mctx.fillRect(x*sx,y*sy,sx,sy);
+mctx.fillRect(x*10,y*10,10,10);
 }
 }
 
-// player
 mctx.fillStyle="#fff";
-mctx.fillRect(player.x*sx,player.y*sy,sx,sy);
+mctx.fillRect(player.x*10,player.y*10,10,10);
 }
 
-// ===== LOOP =====
+// ================= LOOP =================
 function loop(){
 update();
+updateCamera();
 draw();
-drawMiniMap();
+drawMini();
 requestAnimationFrame(loop);
 }
 loop();
 
+// ================= INIT =================
+document.getElementById("topBar").innerText=stages[0].name;
+enqueue("記憶世界へようこそ");
+enqueue("矢印で移動 / Enterで行動");
+enqueue("D=進行 / E=敵 / B=ボス");
 </script>
+
 </body>
 </html>
