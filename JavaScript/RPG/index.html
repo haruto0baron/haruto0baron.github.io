@@ -2,13 +2,9 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Memory Square HD-2D RPG</title>
+<title>Memory Square RPG</title>
 <style>
-html,body{
-margin:0;padding:0;overflow:hidden;background:#000;
-font-family:monospace;
-}
-
+html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:monospace;}
 canvas{display:block;}
 
 #ui{position:absolute;inset:0;pointer-events:none;}
@@ -22,17 +18,10 @@ color:#fff;
 padding:10px;
 }
 
-#topBar{
-position:absolute;top:10px;left:50%;transform:translateX(-50%);
-}
+#topBar{position:absolute;top:10px;left:50%;transform:translateX(-50%);}
 
-#cmd{
-position:absolute;bottom:20px;left:20px;width:220px;
-}
-
-#status{
-position:absolute;bottom:20px;right:20px;width:200px;
-}
+#cmd{position:absolute;bottom:20px;left:20px;width:220px;}
+#status{position:absolute;bottom:20px;right:20px;width:220px;}
 
 #dialog{
 position:absolute;bottom:170px;left:50%;transform:translateX(-50%);
@@ -40,12 +29,19 @@ width:60%;
 display:none;
 }
 
-#miniMap{
-position:absolute;top:10px;right:10px;
-width:150px;height:150px;
+#battleUI{
+position:absolute;bottom:180px;left:50%;transform:translateX(-50%);
+width:60%;
+display:none;
 }
 
-.small{font-size:12px;opacity:0.8}
+.choice{padding:4px 0;}
+.small{font-size:12px;opacity:0.8;}
+
+#miniMap{
+position:absolute;top:10px;right:10px;
+width:140px;height:140px;
+}
 </style>
 </head>
 <body>
@@ -56,23 +52,30 @@ width:150px;height:150px;
 
 <div id="topBar" class="panel">チュートリアル</div>
 
-<canvas id="miniMap" class="panel" width="150" height="150"></canvas>
+<canvas id="miniMap" class="panel" width="140" height="140"></canvas>
 
 <div id="cmd" class="panel">
-<div>▶ たたかう</div>
-<div>▶ まほう</div>
-<div>▶ ぼうぎょ</div>
-<div>▶ にげる</div>
+<div>▶ 移動</div>
+<div>▶ 触れると戦闘</div>
 <div class="small">Enter / 矢印</div>
 </div>
 
 <div id="status" class="panel">
 HP: <span id="hp">10</span><br>
-MP: <span id="mp">5</span><br>
-敵: -
+敵HP: <span id="ehp">-</span><br>
+状態: 探索
 </div>
 
 <div id="dialog" class="panel"></div>
+
+<div id="battleUI" class="panel">
+<div id="bText">戦闘開始</div>
+<div class="choice">▶ たたかう</div>
+<div class="choice">▶ まほう</div>
+<div class="choice">▶ ぼうぎょ</div>
+<div class="choice">▶ にげる</div>
+<div class="small">Enterで決定</div>
+</div>
 
 </div>
 
@@ -89,84 +92,83 @@ canvas.height=innerHeight;
 addEventListener("resize",resize);
 resize();
 
-// ================= MAP STAGES =================
+// ================= STAGES =================
 const stages=[
 {
-name:"チュートリアルの崩壊地",
-map:[
-"################",
-"#......N.......#",
-"#..............#",
-"#......D.......#",
-"#..............#",
-"################"
-]
+name:"さびれたスタートタウン",
+bg:"#0f1020",
+enemyColor:"#f55",
+npcColor:"#6a6",
+enemyName:"感情バグ（弱）"
 },
 {
 name:"ノイズの森",
-map:[
-"################",
-"#....E.........#",
-"#......N.......#",
-"#......D.......#",
-"#..............#",
-"################"
-]
+bg:"#0b1a12",
+enemyColor:"#f77",
+npcColor:"#7f7",
+enemyName:"ノイズバグ"
 },
 {
 name:"反転砂漠",
-map:[
-"################",
-"#....E....E....#",
-"#..............#",
-"#......D.......#",
-"#......N.......#",
-"################"
-]
+bg:"#1a1410",
+enemyColor:"#fa4",
+npcColor:"#aa7",
+enemyName:"砂漠バグ"
 },
 {
 name:"無音の海",
-map:[
-"################",
-"#....E.........#",
-"#....E.........#",
-"#......D.......#",
-"#......N.......#",
-"################"
-]
+bg:"#081018",
+enemyColor:"#5af",
+npcColor:"#7aa",
+enemyName:"沈黙バグ"
 },
 {
 name:"メモリの塔",
-map:[
-"################",
-"#....E....E....#",
-"#....E....E....#",
-"#......D.......#",
-"#......N.......#",
-"################"
-]
+bg:"#141020",
+enemyColor:"#c6f",
+npcColor:"#aaf",
+enemyName:"記憶バグ"
 },
 {
 name:"最終領域",
-map:[
-"################",
-"#..............#",
-"#....E....E....#",
-"#....B.........#",
-"#......D.......#",
-"################"
-]
+bg:"#000",
+enemyColor:"#ff0",
+npcColor:"#888",
+enemyName:"コアバグ"
 }
 ];
 
-let stageIndex=0;
-let map=stages[stageIndex].map;
+let stage=0;
+
+// ================= MAP =================
+const map=[
+"################",
+"#..N.....E.....#",
+"#..............#",
+"#......D.......#",
+"#..............#",
+"################"
+];
 
 // ================= PLAYER =================
-let player={x:2,y:2,rx:2,ry:2};
+let player={x:2,y:2};
 
-// ================= CAMERA =================
-let camX=0,camY=0;
+// ================= ENEMY OBJECTS =================
+let enemies=[];
+
+// spawn enemies
+function spawnEnemies(){
+enemies=[];
+for(let i=0;i<3;i++){
+enemies.push({x:8+i,y:1,type:"enemy",hp:3});
+}
+}
+spawnEnemies();
+
+// ================= STATE =================
+let mode="field";
+let battle=null;
+let dialogQueue=[];
 
 // ================= INPUT =================
 const keys={};
@@ -181,17 +183,22 @@ if(e.key==="Enter")handleEnter();
 });
 addEventListener("keyup",e=>keys[e.key]=false);
 
-// ================= GAME STATE =================
-let mode="field";
-let dialogQueue=[];
+// ================= UI =================
+const dialog=document.getElementById("dialog");
+const battleUI=document.getElementById("battleUI");
 
-// ================= BATTLE =================
-let battle=null;
+function showDialog(t){
+dialog.style.display="block";
+dialog.innerText=t;
+}
 
-/*
-battle:
-{enemyHP,maxHP,name}
-*/
+function hideDialog(){
+dialog.style.display="none";
+}
+
+function showBattleUI(show){
+battleUI.style.display=show?"block":"none";
+}
 
 // ================= ENTER =================
 function handleEnter(){
@@ -199,7 +206,6 @@ if(mode==="dialog"){
 nextDialog();
 return;
 }
-
 if(mode==="battle"){
 battleTurn();
 return;
@@ -207,25 +213,15 @@ return;
 }
 
 // ================= DIALOG =================
-const dialogBox=document.getElementById("dialog");
-
-function showDialog(t){
-mode="dialog";
-dialogBox.style.display="block";
-dialogBox.innerText=t;
-}
-
-function hideDialog(){
-dialogBox.style.display="none";
-}
-
 function enqueue(t){
 dialogQueue.push(t);
-if(mode==="field")showDialog(dialogQueue.shift());
+if(mode==="field"){
+showDialog(dialogQueue.shift());
+}
 }
 
 function nextDialog(){
-if(dialogQueue.length>0){
+if(dialogQueue.length){
 showDialog(dialogQueue.shift());
 }else{
 hideDialog();
@@ -238,44 +234,55 @@ function solid(x,y){
 return map[y][x]==="#";
 }
 
-// ================= STAGE =================
+// ================= STAGE CHANGE =================
 function nextStage(){
-stageIndex++;
-if(stageIndex>=stages.length){
+stage++;
+if(stage>=stages.length){
 showDialog("ゲームクリア：世界は修復された");
 return;
 }
-map=stages[stageIndex].map;
+
 player.x=2;player.y=2;
-document.getElementById("topBar").innerText=stages[stageIndex].name;
-enqueue("ステージ進行");
+spawnEnemies();
+
+document.getElementById("topBar").innerText=stages[stage].name;
+enqueue("世界の色が変わった");
 }
 
-// ================= BATTLE =================
-function startBattle(type="enemy"){
+// ================= BATTLE (POKEMON STYLE) =================
+function startBattle(enemy){
 mode="battle";
 battle={
-name:type==="boss"?"感情バグ・コア":"感情バグ",
-hp:type==="boss"?12:5,
-max:type==="boss"?12:5
+name:enemy.name,
+hp:enemy.hp,
+max:enemy.hp,
+stage:stage
 };
-showDialog(battle.name+" 出現！");
+
+document.getElementById("ehp").innerText=battle.hp;
+showBattleUI(true);
+showDialog(enemy.name+" が現れた！");
 }
 
 function battleTurn(){
 
-// player action simplified (attack only)
+const action="attack";
+
+if(action==="attack"){
 battle.hp-=2;
+enqueue("こうげき！");
+}
 
-enqueue("攻撃！");
 if(battle.hp<=0){
-enqueue("撃破！");
+enqueue(battle.name+" を倒した！");
+showBattleUI(false);
 mode="field";
+document.getElementById("ehp").innerText="-";
 
-if(battle.name.includes("コア")){
-enqueue("世界のバグが消滅した");
+if(stage===stages.length-1){
+enqueue("コアが崩壊した");
 }else{
-enqueue("断片を回収");
+enqueue("記憶の断片を取得");
 }
 }
 }
@@ -294,8 +301,7 @@ if(keys["ArrowDown"])dy=1;
 if(keys["ArrowLeft"])dx=-1;
 if(keys["ArrowRight"])dx=1;
 
-// smooth movement lock
-if((dx||dy) && lock===0){
+if((dx||dy)&&lock===0){
 
 const nx=player.x+dx;
 const ny=player.y+dy;
@@ -306,87 +312,78 @@ player.y=ny;
 lock=6;
 }
 
-const t=map[player.y][player.x];
-
-if(t==="D")nextStage();
-if(t==="E")startBattle();
-if(t==="B")startBattle("boss");
-if(t==="N")enqueue("記憶NPC：この世界は壊れている");
+// enemy encounter (touch triggers battle)
+for(let e of enemies){
+if(e.x===player.x && e.y===player.y){
+startBattle({name:stages[stage].enemyName,hp:5});
 }
 }
 
-// ================= CAMERA FOLLOW =================
-function updateCamera(){
-camX += (player.x - camX)*0.12;
-camY += (player.y - camY)*0.12;
+// stage gate
+if(map[player.y][player.x]==="D"){
+nextStage();
 }
 
-// ================= DRAW ISO =================
-function iso(x,y,cx,cy){
+if(map[player.y][player.x]==="N"){
+enqueue("NPC：この世界は壊れている");
+}
+}
+}
+
+// ================= DRAW =================
+function draw(){
+
+// stage background
+ctx.fillStyle=stages[stage].bg;
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+const cx=canvas.width/2;
+const cy=canvas.height/2+40;
+
+// iso
+function iso(x,y){
 const tile=52;
 const px=(x-y)*tile*0.9;
 const py=(x+y)*tile*0.45;
 return [cx+px,cy+py];
 }
 
-function draw(){
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-const cx=canvas.width/2;
-const cy=canvas.height/2+40;
-
-// bg glow
-const g=ctx.createRadialGradient(cx,cy,50,cx,cy,800);
-g.addColorStop(0,"#101030");
-g.addColorStop(1,"#000");
-ctx.fillStyle=g;
-ctx.fillRect(0,0,canvas.width,canvas.height);
-
 // tiles
-const objs=[];
 for(let y=0;y<map.length;y++){
 for(let x=0;x<map[y].length;x++){
-objs.push({x,y,t:map[y][x]});
-}
-}
-objs.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
 
-// camera applied
-const ccx=cx - (camX-camY)*52*0.9;
-const ccy=cy - (camX+camY)*52*0.45;
-
-for(const o of objs){
-const [px,py]=iso(o.x,o.y,ccx,ccy);
+const t=map[y][x];
+const [px,py]=iso(x,y);
 
 let col="#111";
-if(o.t==="#")col="#2a2a3a";
-if(o.t==="D")col="#4af";
-if(o.t==="E")col="#f55";
-if(o.t==="N")col="#6a6";
-if(o.t==="B")col="#ff0";
+if(t==="#")col="#333";
+if(t==="D")col="#4af";
+if(t==="N")col=stages[stage].npcColor;
+if(t==="E")col=stages[stage].enemyColor;
 
 ctx.shadowColor=col;
-ctx.shadowBlur=14;
+ctx.shadowBlur=10;
 
 ctx.fillStyle=col;
 ctx.beginPath();
 ctx.moveTo(px,py);
-ctx.lineTo(px+26,py+13);
-ctx.lineTo(px,py+26);
-ctx.lineTo(px-26,py+13);
+ctx.lineTo(px+24,py+12);
+ctx.lineTo(px,py+24);
+ctx.lineTo(px-24,py+12);
 ctx.closePath();
 ctx.fill();
-
-ctx.shadowBlur=0;
+}
 }
 
-// player (square HD-2D)
-const [px,py]=iso(player.x,player.y,ccx,ccy);
+// enemies (visible better)
+for(let e of enemies){
+const [px,py]=iso(e.x,e.y);
+ctx.fillStyle=stages[stage].enemyColor;
+ctx.fillRect(px-10,py-10,20,20);
+}
 
-ctx.shadowColor="#fff";
-ctx.shadowBlur=20;
-
+// player (square)
+const [px,py]=iso(player.x,player.y);
 ctx.fillStyle="#fff";
 ctx.fillRect(px-10,py-10,20,20);
 
@@ -397,17 +394,16 @@ ctx.fillRect(px+2,py-5,3,3);
 }
 
 // ================= MINIMAP =================
-function drawMini(){
-mctx.clearRect(0,0,150,150);
+function miniMap(){
+mctx.clearRect(0,0,140,140);
 
 for(let y=0;y<map.length;y++){
 for(let x=0;x<map[y].length;x++){
 let c="#222";
 if(map[y][x]==="#")c="#444";
-if(map[y][x]==="E")c="#f55";
-if(map[y][x]==="N")c="#6a6";
 if(map[y][x]==="D")c="#4af";
-if(map[y][x]==="B")c="#ff0";
+if(map[y][x]==="N")c=stages[stage].npcColor;
+if(map[y][x]==="E")c=stages[stage].enemyColor;
 
 mctx.fillStyle=c;
 mctx.fillRect(x*10,y*10,10,10);
@@ -421,18 +417,16 @@ mctx.fillRect(player.x*10,player.y*10,10,10);
 // ================= LOOP =================
 function loop(){
 update();
-updateCamera();
 draw();
-drawMini();
+miniMap();
 requestAnimationFrame(loop);
 }
 loop();
 
 // ================= INIT =================
 document.getElementById("topBar").innerText=stages[0].name;
-enqueue("記憶世界へようこそ");
-enqueue("矢印で移動 / Enterで行動");
-enqueue("D=進行 / E=敵 / B=ボス");
+enqueue("触れると戦闘が始まる");
+enqueue("ポケモン風ターン制：Enterで攻撃");
 </script>
 
 </body>
