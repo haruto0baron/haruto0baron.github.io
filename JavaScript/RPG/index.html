@@ -2,307 +2,293 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Mini 3D RPG Engine</title>
+<title>ミニRPG - ECHOES</title>
 <style>
-  body { margin: 0; overflow: hidden; font-family: sans-serif; }
-  #ui {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    width: 300px;
-    padding: 10px;
-    background: rgba(0,0,0,0.7);
-    color: white;
-    display: none;
-  }
-  #choices button {
-    display: block;
-    margin-top: 5px;
-    width: 100%;
-  }
+body {
+    margin:0;
+    font-family: monospace;
+    background:#111;
+    color:#eee;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+#game {
+    width:360px;
+    height:640px;
+    background:#000;
+    border:2px solid #555;
+    position:relative;
+    overflow:hidden;
+}
+.screen {
+    position:absolute;
+    width:100%;
+    height:100%;
+    display:none;
+    padding:10px;
+    box-sizing:border-box;
+}
+.active { display:block; }
+
+button {
+    width:100%;
+    margin:5px 0;
+    padding:10px;
+    background:#222;
+    color:#fff;
+    border:1px solid #555;
+}
+#log {
+    height:150px;
+    overflow-y:auto;
+    border:1px solid #555;
+    padding:5px;
+    margin-bottom:5px;
+    font-size:12px;
+}
+.bar {
+    height:10px;
+    background:#333;
+    margin-bottom:4px;
+}
+.fill {
+    height:100%;
+    background:#0f0;
+}
+.enemy .fill { background:#f00; }
+
+.small { font-size:12px; }
 </style>
 </head>
 <body>
+<div id="game">
 
-<div id="ui">
-  <div id="text"></div>
-  <div id="choices"></div>
+<!-- TITLE -->
+<div id="title" class="screen active">
+<h2>ECHOES</h2>
+<p>崩壊した世界で記憶を集めるRPG</p>
+<button onclick="newGame()">開始</button>
+<button onclick="loadGame()">ロード</button>
 </div>
 
-<script type="module">
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.158/build/three.module.js";
+<!-- GAME -->
+<div id="gameplay" class="screen">
+<div id="status"></div>
+<div id="log"></div>
+<div id="actions"></div>
+</div>
 
-/* =========================
-   基本エンジン
-========================= */
-class Engine {
-  constructor() {
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x87ceeb);
+</div>
 
-    this.camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-    this.camera.position.set(5,5,5);
+<script>
+// ===== UTIL =====
+function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
 
-    this.renderer = new THREE.WebGLRenderer();
-    this.renderer.setSize(innerWidth, innerHeight);
-    document.body.appendChild(this.renderer.domElement);
-
-    this.entities = [];
-    this.flags = {};
-
-    this.clock = new THREE.Clock();
-
-    window.addEventListener("resize", ()=>{
-      this.camera.aspect = innerWidth/innerHeight;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setSize(innerWidth, innerHeight);
-    });
-
-    this.loop();
-  }
-
-  add(entity){
-    this.entities.push(entity);
-    this.scene.add(entity.mesh);
-  }
-
-  loop(){
-    requestAnimationFrame(()=>this.loop());
-
-    let dt = this.clock.getDelta();
-
-    for(let e of this.entities){
-      if(e.update) e.update(dt);
-    }
-
-    this.renderer.render(this.scene, this.camera);
-  }
-}
-
-/* =========================
-   入力管理
-========================= */
-const keys = {};
-window.addEventListener("keydown", e=>keys[e.key.toLowerCase()] = true);
-window.addEventListener("keyup", e=>keys[e.key.toLowerCase()] = false);
-
-/* =========================
-   プレイヤー
-========================= */
-class Player {
-  constructor(engine){
-    this.engine = engine;
-
-    this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(1,1,1),
-      new THREE.MeshBasicMaterial({color:0x00ff00})
-    );
-
-    this.velocity = new THREE.Vector3();
-    this.onGround = false;
-  }
-
-  update(dt){
-    // 移動
-    let speed = 5;
-    if(keys["w"]) this.mesh.position.z -= speed*dt;
-    if(keys["s"]) this.mesh.position.z += speed*dt;
-    if(keys["a"]) this.mesh.position.x -= speed*dt;
-    if(keys["d"]) this.mesh.position.x += speed*dt;
-
-    // ジャンプ
-    if(keys[" "] && this.onGround){
-      this.velocity.y = 8;
-      this.onGround = false;
-    }
-
-    // 重力
-    this.velocity.y -= 20 * dt;
-    this.mesh.position.y += this.velocity.y * dt;
-
-    // 地面衝突
-    if(this.mesh.position.y < 0.5){
-      this.mesh.position.y = 0.5;
-      this.velocity.y = 0;
-      this.onGround = true;
-    }
-
-    // カメラ追従
-    this.engine.camera.position.lerp(
-      new THREE.Vector3(
-        this.mesh.position.x + 5,
-        this.mesh.position.y + 5,
-        this.mesh.position.z + 5
-      ),
-      0.1
-    );
-    this.engine.camera.lookAt(this.mesh.position);
-  }
-}
-
-/* =========================
-   NPC
-========================= */
-class NPC {
-  constructor(engine, x, z){
-    this.engine = engine;
-
-    this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(1,1,1),
-      new THREE.MeshBasicMaterial({color:0xff0000})
-    );
-    this.mesh.position.set(x,0.5,z);
-
-    this.dialogueIndex = 0;
-
-    this.dialogues = [
-      {
-        text:["こんにちは！冒険者さん！","ジャンプ台に乗ってみて！"],
-      },
-      {
-        text:["また来たね！"],
-      }
-    ];
-  }
-
-  update(){
-    let player = this.engine.player;
-    let dist = player.mesh.position.distanceTo(this.mesh.position);
-
-    if(dist < 2 && keys["e"]){
-      this.startDialogue();
-    }
-  }
-
-  startDialogue(){
-    let flag = this.engine.flags["talked"];
-    let d = flag ? this.dialogues[1] : this.dialogues[0];
-    this.engine.flags["talked"] = true;
-
-    DialogueSystem.start(d.text);
-  }
-}
-
-/* =========================
-   ギミック
-========================= */
-
-// ジャンプ台
-class JumpPad {
-  constructor(x,z){
-    this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(1,0.2,1),
-      new THREE.MeshBasicMaterial({color:0xffff00})
-    );
-    this.mesh.position.set(x,0.1,z);
-  }
-
-  update(){
-    let p = engine.player;
-    let dist = p.mesh.position.distanceTo(this.mesh.position);
-
-    if(dist < 1){
-      p.velocity.y = 12;
-    }
-  }
-}
-
-/* =========================
-   会話システム
-========================= */
-const ui = document.getElementById("ui");
-const textEl = document.getElementById("text");
-const choicesEl = document.getElementById("choices");
-
-class DialogueSystem {
-  static start(lines){
-    this.lines = lines;
-    this.index = 0;
-    ui.style.display = "block";
-    this.show();
-  }
-
-  static show(){
-    textEl.innerText = this.lines[this.index];
-    choicesEl.innerHTML = "";
-  }
-
-  static next(){
-    this.index++;
-    if(this.index >= this.lines.length){
-      ui.style.display = "none";
-    } else {
-      this.show();
-    }
-  }
-}
-
-window.addEventListener("click", ()=>DialogueSystem.next());
-window.addEventListener("keydown", e=>{
-  if(e.key === "Enter") DialogueSystem.next();
-});
-
-/* =========================
-   初期化
-========================= */
-const engine = new Engine();
-
-// 地面
-const ground = new THREE.Mesh(
-  new THREE.BoxGeometry(20,1,20),
-  new THREE.MeshBasicMaterial({color:0x228B22})
-);
-ground.position.y = -0.5;
-engine.scene.add(ground);
-
-// プレイヤー
-const player = new Player(engine);
-engine.player = player;
-engine.add(player);
-
-// NPC
-const npc = new NPC(engine, 3, 0);
-engine.add(npc);
-
-// ジャンプ台
-const jumpPad = new JumpPad(0,3);
-engine.add(jumpPad);
-
-/* =========================
-   拡張方法
-========================= */
-
-/*
-■ NPC追加方法
-----------------
-const npc2 = new NPC(engine, x, z);
-npc2.dialogues = [
-  { text:["別の会話"] }
+// ===== DATA =====
+const enemies = [
+    {name:"影の獣", hp:20, atk:5, exp:10},
+    {name:"壊れた兵士", hp:30, atk:7, exp:15},
+    {name:"虚無の精霊", hp:40, atk:9, exp:20}
 ];
-engine.add(npc2);
 
-■ ギミック追加方法
-----------------
-class MyGimmick {
-  constructor(x,z){
-    this.mesh = new THREE.Mesh(...);
-  }
-  update(){
-    // プレイヤーとの処理
-  }
+const items = [
+    {name:"回復薬", heal:20}
+];
+
+// ===== PLAYER =====
+let player;
+let currentEnemy;
+let state = "title";
+
+// ===== INIT =====
+function newGame(){
+    player = {
+        hp:100,
+        maxHp:100,
+        atk:10,
+        level:1,
+        exp:0,
+        inventory:[{...items[0]}],
+        skills:["斬撃","回復"]
+    };
+    logClear();
+    switchScreen("gameplay");
+    storyIntro();
 }
 
-const g = new MyGimmick(2,2);
-engine.add(g);
-
-■ フラグ使用例
-----------------
-engine.flags["boss_defeated"] = true;
-
-if(engine.flags["boss_defeated"]){
-  // 分岐
+function loadGame(){
+    const save = localStorage.getItem("rpg_save");
+    if(save){
+        player = JSON.parse(save);
+        switchScreen("gameplay");
+        log("ロード成功");
+        explore();
+    } else {
+        alert("セーブデータなし");
+    }
 }
-*/
+
+function saveGame(){
+    localStorage.setItem("rpg_save", JSON.stringify(player));
+    log("セーブ完了");
+}
+
+// ===== UI =====
+function switchScreen(id){
+    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+}
+
+function log(text){
+    const logEl = document.getElementById("log");
+    logEl.innerHTML += text + "<br>";
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+function logClear(){
+    document.getElementById("log").innerHTML="";
+}
+
+function renderStatus(){
+    document.getElementById("status").innerHTML = `
+    <div>Lv:${player.level} HP:${player.hp}/${player.maxHp} EXP:${player.exp}</div>
+    <div class="bar"><div class="fill" style="width:${player.hp/player.maxHp*100}%"></div></div>
+    `;
+}
+
+function setActions(html){
+    document.getElementById("actions").innerHTML = html;
+}
+
+// ===== STORY =====
+function storyIntro(){
+    log("…世界は崩壊した");
+    log("あなたは記憶を失っている");
+    log("残されたのは戦う力だけ…");
+    explore();
+}
+
+// ===== GAME LOOP =====
+function explore(){
+    renderStatus();
+    setActions(`
+        <button onclick="battleStart()">探索</button>
+        <button onclick="openMenu()">メニュー</button>
+    `);
+}
+
+// ===== BATTLE =====
+function battleStart(){
+    currentEnemy = JSON.parse(JSON.stringify(enemies[rand(0,enemies.length-1)]));
+    log("敵出現: "+currentEnemy.name);
+    battleTurn();
+}
+
+function battleTurn(){
+    renderStatus();
+    setActions(`
+        <div class="enemy">敵: ${currentEnemy.name} HP:${currentEnemy.hp}</div>
+        <div class="bar enemy"><div class="fill" style="width:${currentEnemy.hp/40*100}%"></div></div>
+        <button onclick="attack()">攻撃</button>
+        <button onclick="skill()">スキル</button>
+        <button onclick="useItem()">アイテム</button>
+        <button onclick="run()">逃げる</button>
+    `);
+}
+
+function attack(){
+    let dmg = rand(player.atk-2, player.atk+2);
+    currentEnemy.hp -= dmg;
+    log("攻撃 "+dmg);
+
+    if(currentEnemy.hp <=0){
+        winBattle();
+        return;
+    }
+
+    enemyAttack();
+}
+
+function skill(){
+    let dmg = player.atk * 2;
+    currentEnemy.hp -= dmg;
+    log("スキル発動 "+dmg);
+
+    if(currentEnemy.hp <=0){
+        winBattle();
+        return;
+    }
+
+    enemyAttack();
+}
+
+function useItem(){
+    if(player.inventory.length===0){
+        log("アイテムなし");
+        return;
+    }
+    let item = player.inventory.pop();
+    player.hp = Math.min(player.maxHp, player.hp + item.heal);
+    log("回復 "+item.heal);
+    enemyAttack();
+}
+
+function run(){
+    if(Math.random()<0.5){
+        log("逃げ成功");
+        explore();
+    } else {
+        log("逃げ失敗");
+        enemyAttack();
+    }
+}
+
+function enemyAttack(){
+    let dmg = rand(currentEnemy.atk-2, currentEnemy.atk+2);
+    player.hp -= dmg;
+    log("敵攻撃 "+dmg);
+
+    if(player.hp <=0){
+        gameOver();
+        return;
+    }
+
+    battleTurn();
+}
+
+function winBattle(){
+    log("勝利！");
+    player.exp += currentEnemy.exp;
+
+    if(player.exp >= player.level * 20){
+        player.exp = 0;
+        player.level++;
+        player.maxHp += 20;
+        player.hp = player.maxHp;
+        player.atk += 3;
+        log("レベルアップ！");
+    }
+
+    explore();
+}
+
+function gameOver(){
+    log("ゲームオーバー");
+    setActions(`<button onclick="location.reload()">タイトルへ</button>`);
+}
+
+// ===== MENU =====
+function openMenu(){
+    setActions(`
+        <button onclick="saveGame()">セーブ</button>
+        <button onclick="explore()">戻る</button>
+    `);
+}
+
+// ===== INIT =====
+renderStatus();
 
 </script>
 </body>
