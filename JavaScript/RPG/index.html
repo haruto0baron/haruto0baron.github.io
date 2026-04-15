@@ -2,432 +2,308 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Memory Square RPG</title>
+<title>Mini 3D RPG Engine</title>
 <style>
-html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:monospace;}
-canvas{display:block;}
-
-#ui{position:absolute;inset:0;pointer-events:none;}
-
-.panel{
-background:rgba(20,20,35,0.55);
-backdrop-filter: blur(10px);
-border:1px solid rgba(255,255,255,0.12);
-border-radius:14px;
-color:#fff;
-padding:10px;
-}
-
-#topBar{position:absolute;top:10px;left:50%;transform:translateX(-50%);}
-
-#cmd{position:absolute;bottom:20px;left:20px;width:220px;}
-#status{position:absolute;bottom:20px;right:20px;width:220px;}
-
-#dialog{
-position:absolute;bottom:170px;left:50%;transform:translateX(-50%);
-width:60%;
-display:none;
-}
-
-#battleUI{
-position:absolute;bottom:180px;left:50%;transform:translateX(-50%);
-width:60%;
-display:none;
-}
-
-.choice{padding:4px 0;}
-.small{font-size:12px;opacity:0.8;}
-
-#miniMap{
-position:absolute;top:10px;right:10px;
-width:140px;height:140px;
-}
+  body { margin: 0; overflow: hidden; font-family: sans-serif; }
+  #ui {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 300px;
+    padding: 10px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    display: none;
+  }
+  #choices button {
+    display: block;
+    margin-top: 5px;
+    width: 100%;
+  }
 </style>
 </head>
 <body>
 
-<canvas id="c"></canvas>
-
 <div id="ui">
-
-<div id="topBar" class="panel">チュートリアル</div>
-
-<canvas id="miniMap" class="panel" width="140" height="140"></canvas>
-
-<div id="cmd" class="panel">
-<div>▶ 移動</div>
-<div>▶ 触れると戦闘</div>
-<div class="small">Enter / 矢印</div>
+  <div id="text"></div>
+  <div id="choices"></div>
 </div>
 
-<div id="status" class="panel">
-HP: <span id="hp">10</span><br>
-敵HP: <span id="ehp">-</span><br>
-状態: 探索
-</div>
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.158/build/three.module.js";
 
-<div id="dialog" class="panel"></div>
+/* =========================
+   基本エンジン
+========================= */
+class Engine {
+  constructor() {
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x87ceeb);
 
-<div id="battleUI" class="panel">
-<div id="bText">戦闘開始</div>
-<div class="choice">▶ たたかう</div>
-<div class="choice">▶ まほう</div>
-<div class="choice">▶ ぼうぎょ</div>
-<div class="choice">▶ にげる</div>
-<div class="small">Enterで決定</div>
-</div>
+    this.camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+    this.camera.position.set(5,5,5);
 
-</div>
+    this.renderer = new THREE.WebGLRenderer();
+    this.renderer.setSize(innerWidth, innerHeight);
+    document.body.appendChild(this.renderer.domElement);
 
-<script>
-const canvas=document.getElementById("c");
-const ctx=canvas.getContext("2d");
-const mini=document.getElementById("miniMap");
-const mctx=mini.getContext("2d");
+    this.entities = [];
+    this.flags = {};
 
-function resize(){
-canvas.width=innerWidth;
-canvas.height=innerHeight;
+    this.clock = new THREE.Clock();
+
+    window.addEventListener("resize", ()=>{
+      this.camera.aspect = innerWidth/innerHeight;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(innerWidth, innerHeight);
+    });
+
+    this.loop();
+  }
+
+  add(entity){
+    this.entities.push(entity);
+    this.scene.add(entity.mesh);
+  }
+
+  loop(){
+    requestAnimationFrame(()=>this.loop());
+
+    let dt = this.clock.getDelta();
+
+    for(let e of this.entities){
+      if(e.update) e.update(dt);
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  }
 }
-addEventListener("resize",resize);
-resize();
 
-// ================= STAGES =================
-const stages=[
-{
-name:"さびれたスタートタウン",
-bg:"#0f1020",
-enemyColor:"#f55",
-npcColor:"#6a6",
-enemyName:"感情バグ（弱）"
-},
-{
-name:"ノイズの森",
-bg:"#0b1a12",
-enemyColor:"#f77",
-npcColor:"#7f7",
-enemyName:"ノイズバグ"
-},
-{
-name:"反転砂漠",
-bg:"#1a1410",
-enemyColor:"#fa4",
-npcColor:"#aa7",
-enemyName:"砂漠バグ"
-},
-{
-name:"無音の海",
-bg:"#081018",
-enemyColor:"#5af",
-npcColor:"#7aa",
-enemyName:"沈黙バグ"
-},
-{
-name:"メモリの塔",
-bg:"#141020",
-enemyColor:"#c6f",
-npcColor:"#aaf",
-enemyName:"記憶バグ"
-},
-{
-name:"最終領域",
-bg:"#000",
-enemyColor:"#ff0",
-npcColor:"#888",
-enemyName:"コアバグ"
+/* =========================
+   入力管理
+========================= */
+const keys = {};
+window.addEventListener("keydown", e=>keys[e.key.toLowerCase()] = true);
+window.addEventListener("keyup", e=>keys[e.key.toLowerCase()] = false);
+
+/* =========================
+   プレイヤー
+========================= */
+class Player {
+  constructor(engine){
+    this.engine = engine;
+
+    this.mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1,1,1),
+      new THREE.MeshBasicMaterial({color:0x00ff00})
+    );
+
+    this.velocity = new THREE.Vector3();
+    this.onGround = false;
+  }
+
+  update(dt){
+    // 移動
+    let speed = 5;
+    if(keys["w"]) this.mesh.position.z -= speed*dt;
+    if(keys["s"]) this.mesh.position.z += speed*dt;
+    if(keys["a"]) this.mesh.position.x -= speed*dt;
+    if(keys["d"]) this.mesh.position.x += speed*dt;
+
+    // ジャンプ
+    if(keys[" "] && this.onGround){
+      this.velocity.y = 8;
+      this.onGround = false;
+    }
+
+    // 重力
+    this.velocity.y -= 20 * dt;
+    this.mesh.position.y += this.velocity.y * dt;
+
+    // 地面衝突
+    if(this.mesh.position.y < 0.5){
+      this.mesh.position.y = 0.5;
+      this.velocity.y = 0;
+      this.onGround = true;
+    }
+
+    // カメラ追従
+    this.engine.camera.position.lerp(
+      new THREE.Vector3(
+        this.mesh.position.x + 5,
+        this.mesh.position.y + 5,
+        this.mesh.position.z + 5
+      ),
+      0.1
+    );
+    this.engine.camera.lookAt(this.mesh.position);
+  }
 }
-];
 
-let stage=0;
+/* =========================
+   NPC
+========================= */
+class NPC {
+  constructor(engine, x, z){
+    this.engine = engine;
 
-// ================= MAP =================
-const map=[
-"################",
-"#..N.....E.....#",
-"#..............#",
-"#......D.......#",
-"#..............#",
-"################"
-];
+    this.mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1,1,1),
+      new THREE.MeshBasicMaterial({color:0xff0000})
+    );
+    this.mesh.position.set(x,0.5,z);
 
-// ================= PLAYER =================
-let player={x:2,y:2};
+    this.dialogueIndex = 0;
 
-// ================= ENEMY OBJECTS =================
-let enemies=[];
+    this.dialogues = [
+      {
+        text:["こんにちは！冒険者さん！","ジャンプ台に乗ってみて！"],
+      },
+      {
+        text:["また来たね！"],
+      }
+    ];
+  }
 
-// spawn enemies
-function spawnEnemies(){
-enemies=[];
-for(let i=0;i<3;i++){
-enemies.push({x:8+i,y:1,type:"enemy",hp:3});
+  update(){
+    let player = this.engine.player;
+    let dist = player.mesh.position.distanceTo(this.mesh.position);
+
+    if(dist < 2 && keys["e"]){
+      this.startDialogue();
+    }
+  }
+
+  startDialogue(){
+    let flag = this.engine.flags["talked"];
+    let d = flag ? this.dialogues[1] : this.dialogues[0];
+    this.engine.flags["talked"] = true;
+
+    DialogueSystem.start(d.text);
+  }
 }
+
+/* =========================
+   ギミック
+========================= */
+
+// ジャンプ台
+class JumpPad {
+  constructor(x,z){
+    this.mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1,0.2,1),
+      new THREE.MeshBasicMaterial({color:0xffff00})
+    );
+    this.mesh.position.set(x,0.1,z);
+  }
+
+  update(){
+    let p = engine.player;
+    let dist = p.mesh.position.distanceTo(this.mesh.position);
+
+    if(dist < 1){
+      p.velocity.y = 12;
+    }
+  }
 }
-spawnEnemies();
 
-// ================= STATE =================
-let mode="field";
-let battle=null;
-let dialogQueue=[];
+/* =========================
+   会話システム
+========================= */
+const ui = document.getElementById("ui");
+const textEl = document.getElementById("text");
+const choicesEl = document.getElementById("choices");
 
-// ================= INPUT =================
-const keys={};
-let lock=0;
+class DialogueSystem {
+  static start(lines){
+    this.lines = lines;
+    this.index = 0;
+    ui.style.display = "block";
+    this.show();
+  }
 
-addEventListener("keydown",e=>{
-if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)){
-keys[e.key]=true;
-e.preventDefault();
+  static show(){
+    textEl.innerText = this.lines[this.index];
+    choicesEl.innerHTML = "";
+  }
+
+  static next(){
+    this.index++;
+    if(this.index >= this.lines.length){
+      ui.style.display = "none";
+    } else {
+      this.show();
+    }
+  }
 }
-if(e.key==="Enter")handleEnter();
+
+window.addEventListener("click", ()=>DialogueSystem.next());
+window.addEventListener("keydown", e=>{
+  if(e.key === "Enter") DialogueSystem.next();
 });
-addEventListener("keyup",e=>keys[e.key]=false);
 
-// ================= UI =================
-const dialog=document.getElementById("dialog");
-const battleUI=document.getElementById("battleUI");
+/* =========================
+   初期化
+========================= */
+const engine = new Engine();
 
-function showDialog(t){
-dialog.style.display="block";
-dialog.innerText=t;
+// 地面
+const ground = new THREE.Mesh(
+  new THREE.BoxGeometry(20,1,20),
+  new THREE.MeshBasicMaterial({color:0x228B22})
+);
+ground.position.y = -0.5;
+engine.scene.add(ground);
+
+// プレイヤー
+const player = new Player(engine);
+engine.player = player;
+engine.add(player);
+
+// NPC
+const npc = new NPC(engine, 3, 0);
+engine.add(npc);
+
+// ジャンプ台
+const jumpPad = new JumpPad(0,3);
+engine.add(jumpPad);
+
+/* =========================
+   拡張方法
+========================= */
+
+/*
+■ NPC追加方法
+----------------
+const npc2 = new NPC(engine, x, z);
+npc2.dialogues = [
+  { text:["別の会話"] }
+];
+engine.add(npc2);
+
+■ ギミック追加方法
+----------------
+class MyGimmick {
+  constructor(x,z){
+    this.mesh = new THREE.Mesh(...);
+  }
+  update(){
+    // プレイヤーとの処理
+  }
 }
 
-function hideDialog(){
-dialog.style.display="none";
+const g = new MyGimmick(2,2);
+engine.add(g);
+
+■ フラグ使用例
+----------------
+engine.flags["boss_defeated"] = true;
+
+if(engine.flags["boss_defeated"]){
+  // 分岐
 }
+*/
 
-function showBattleUI(show){
-battleUI.style.display=show?"block":"none";
-}
-
-// ================= ENTER =================
-function handleEnter(){
-if(mode==="dialog"){
-nextDialog();
-return;
-}
-if(mode==="battle"){
-battleTurn();
-return;
-}
-}
-
-// ================= DIALOG =================
-function enqueue(t){
-dialogQueue.push(t);
-if(mode==="field"){
-showDialog(dialogQueue.shift());
-}
-}
-
-function nextDialog(){
-if(dialogQueue.length){
-showDialog(dialogQueue.shift());
-}else{
-hideDialog();
-mode="field";
-}
-}
-
-// ================= COLLISION =================
-function solid(x,y){
-return map[y][x]==="#";
-}
-
-// ================= STAGE CHANGE =================
-function nextStage(){
-stage++;
-if(stage>=stages.length){
-showDialog("ゲームクリア：世界は修復された");
-return;
-}
-
-player.x=2;player.y=2;
-spawnEnemies();
-
-document.getElementById("topBar").innerText=stages[stage].name;
-enqueue("世界の色が変わった");
-}
-
-// ================= BATTLE (POKEMON STYLE) =================
-function startBattle(enemy){
-mode="battle";
-battle={
-name:enemy.name,
-hp:enemy.hp,
-max:enemy.hp,
-stage:stage
-};
-
-document.getElementById("ehp").innerText=battle.hp;
-showBattleUI(true);
-showDialog(enemy.name+" が現れた！");
-}
-
-function battleTurn(){
-
-const action="attack";
-
-if(action==="attack"){
-battle.hp-=2;
-enqueue("こうげき！");
-}
-
-if(battle.hp<=0){
-enqueue(battle.name+" を倒した！");
-showBattleUI(false);
-mode="field";
-document.getElementById("ehp").innerText="-";
-
-if(stage===stages.length-1){
-enqueue("コアが崩壊した");
-}else{
-enqueue("記憶の断片を取得");
-}
-}
-}
-
-// ================= UPDATE =================
-function update(){
-
-if(lock>0)lock--;
-
-if(mode!=="field")return;
-
-let dx=0,dy=0;
-
-if(keys["ArrowUp"])dy=-1;
-if(keys["ArrowDown"])dy=1;
-if(keys["ArrowLeft"])dx=-1;
-if(keys["ArrowRight"])dx=1;
-
-if((dx||dy)&&lock===0){
-
-const nx=player.x+dx;
-const ny=player.y+dy;
-
-if(!solid(nx,ny)){
-player.x=nx;
-player.y=ny;
-lock=6;
-}
-
-// enemy encounter (touch triggers battle)
-for(let e of enemies){
-if(e.x===player.x && e.y===player.y){
-startBattle({name:stages[stage].enemyName,hp:5});
-}
-}
-
-// stage gate
-if(map[player.y][player.x]==="D"){
-nextStage();
-}
-
-if(map[player.y][player.x]==="N"){
-enqueue("NPC：この世界は壊れている");
-}
-}
-}
-
-// ================= DRAW =================
-function draw(){
-
-// stage background
-ctx.fillStyle=stages[stage].bg;
-ctx.fillRect(0,0,canvas.width,canvas.height);
-
-const cx=canvas.width/2;
-const cy=canvas.height/2+40;
-
-// iso
-function iso(x,y){
-const tile=52;
-const px=(x-y)*tile*0.9;
-const py=(x+y)*tile*0.45;
-return [cx+px,cy+py];
-}
-
-// tiles
-for(let y=0;y<map.length;y++){
-for(let x=0;x<map[y].length;x++){
-
-const t=map[y][x];
-const [px,py]=iso(x,y);
-
-let col="#111";
-if(t==="#")col="#333";
-if(t==="D")col="#4af";
-if(t==="N")col=stages[stage].npcColor;
-if(t==="E")col=stages[stage].enemyColor;
-
-ctx.shadowColor=col;
-ctx.shadowBlur=10;
-
-ctx.fillStyle=col;
-ctx.beginPath();
-ctx.moveTo(px,py);
-ctx.lineTo(px+24,py+12);
-ctx.lineTo(px,py+24);
-ctx.lineTo(px-24,py+12);
-ctx.closePath();
-ctx.fill();
-}
-}
-
-// enemies (visible better)
-for(let e of enemies){
-const [px,py]=iso(e.x,e.y);
-ctx.fillStyle=stages[stage].enemyColor;
-ctx.fillRect(px-10,py-10,20,20);
-}
-
-// player (square)
-const [px,py]=iso(player.x,player.y);
-ctx.fillStyle="#fff";
-ctx.fillRect(px-10,py-10,20,20);
-
-// face
-ctx.fillStyle="#000";
-ctx.fillRect(px-5,py-5,3,3);
-ctx.fillRect(px+2,py-5,3,3);
-}
-
-// ================= MINIMAP =================
-function miniMap(){
-mctx.clearRect(0,0,140,140);
-
-for(let y=0;y<map.length;y++){
-for(let x=0;x<map[y].length;x++){
-let c="#222";
-if(map[y][x]==="#")c="#444";
-if(map[y][x]==="D")c="#4af";
-if(map[y][x]==="N")c=stages[stage].npcColor;
-if(map[y][x]==="E")c=stages[stage].enemyColor;
-
-mctx.fillStyle=c;
-mctx.fillRect(x*10,y*10,10,10);
-}
-}
-
-mctx.fillStyle="#fff";
-mctx.fillRect(player.x*10,player.y*10,10,10);
-}
-
-// ================= LOOP =================
-function loop(){
-update();
-draw();
-miniMap();
-requestAnimationFrame(loop);
-}
-loop();
-
-// ================= INIT =================
-document.getElementById("topBar").innerText=stages[0].name;
-enqueue("触れると戦闘が始まる");
-enqueue("ポケモン風ターン制：Enterで攻撃");
 </script>
-
 </body>
 </html>
