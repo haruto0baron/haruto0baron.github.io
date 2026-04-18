@@ -645,12 +645,14 @@
         }
 
         function addNewFrame() {
-            const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            frames.push(frameData);
-            currentFrameIndex = frames.length - 1;
-            updateFramesDisplay();
-            updateStatus();
-        }
+    // 空のフレームデータを作成（真っ白）
+             const emptyFrameData = ctx.createImageData(canvas.width, canvas.height);
+             frames.push(emptyFrameData);
+    　　　    currentFrameIndex = frames.length - 1;
+    　　　    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    　　　    updateFramesDisplay();
+    　　　    updateStatus();
+　　　　　　}
 
         function clearCurrentFrame() {
             if (confirm('クリアしますか？')) {
