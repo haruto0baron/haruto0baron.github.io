@@ -100,9 +100,14 @@
     scene.add(player);
 
     player.userData.velocity = new THREE.Vector3(0, 0, -1);
-    player.userData.speed = 1.8;
+    player.userData.speed = 140;
     player.userData.hp = 100;
     player.userData.score = 0;
+    player.userData.yawAngle = 0;
+    player.userData.yawVelocity = 0;
+    player.userData.pitchVelocity = 0;
+    player.userData.currentPitch = 0;
+    player.userData.currentBank = 0;
 
     // 敵ターゲットと建造物
     const targets = [];
@@ -290,10 +295,20 @@
     }
 
     // カメラ追従
+    const cameraLookAt = new THREE.Vector3();
     function updateCamera() {
-      const offset = new THREE.Vector3(0, 16, 42).applyQuaternion(player.quaternion);
-      camera.position.copy(player.position).add(offset);
-      camera.lookAt(player.position.x, player.position.y + 5, player.position.z);
+      // 目標カメラ位置をプレイヤー後方に設定
+      const followOffset = new THREE.Vector3(0, 18, 42).applyQuaternion(player.quaternion);
+      const desiredPosition = player.position.clone().add(followOffset);
+      camera.position.lerp(desiredPosition, 0.1);
+
+      // カメラがプレイヤーの前方を見続けるようにする
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
+      cameraLookAt.copy(player.position).add(forward.multiplyScalar(24)).add(new THREE.Vector3(0, 7, 0));
+      const desiredQuat = new THREE.Quaternion().setFromRotationMatrix(
+        new THREE.Matrix4().lookAt(camera.position, cameraLookAt, new THREE.Vector3(0, 1, 0))
+      );
+      camera.quaternion.slerp(desiredQuat, 0.12);
     }
 
     // 画面サイズ
@@ -306,23 +321,44 @@
     const clock = new THREE.Clock();
 
     function animate() {
-      const delta = Math.min(clock.getDelta(), 0.03);
-      const pitchSpeed = 0.8;
-      const yawSpeed = 1.2;
-      const rollSpeed = 0.7;
-      const pitchAngle = input.forward * pitchSpeed * delta;
-      const yawAngle = input.yaw * yawSpeed * delta;
-      const rollAngle = input.roll * rollSpeed * delta;
+      const delta = Math.min(clock.getDelta(), 0.033);
 
-      const localRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchAngle, yawAngle, rollAngle, 'XYZ'));
-      player.quaternion.multiply(localRotation);
+      const maxYawSpeed = 1.8;
+      const maxPitchSpeed = 1.1;
+      const targetBankAngle = THREE.MathUtils.degToRad(38);
 
-      player.userData.velocity.set(0, 0, -1).applyQuaternion(player.quaternion);
-      player.position.addScaledVector(player.userData.velocity, player.userData.speed * delta * 42);
-      player.position.y = Math.max(player.position.y, 3);
-      player.position.y = Math.min(player.position.y, 310);
+      // 入力から目標角速度を計算し、慣性を持たせて滑らかに変化
+      const desiredYawVelocity = input.yaw * maxYawSpeed;
+      const desiredPitchVelocity = input.forward * maxPitchSpeed;
+      player.userData.yawVelocity = THREE.MathUtils.lerp(player.userData.yawVelocity, desiredYawVelocity, 0.16);
+      player.userData.pitchVelocity = THREE.MathUtils.lerp(player.userData.pitchVelocity, desiredPitchVelocity, 0.14);
 
-      player.userData.speed = 1.8 + Math.sin(Date.now() * 0.001) * 0.04;
+      player.userData.yawAngle += player.userData.yawVelocity * delta;
+      player.userData.currentPitch = THREE.MathUtils.lerp(
+        player.userData.currentPitch,
+        input.forward * THREE.MathUtils.degToRad(20),
+        4.6 * delta
+      );
+
+      // 旋回時のバンク角を滑らかに補間
+      const desiredBank = -input.yaw * targetBankAngle;
+      player.userData.currentBank = THREE.MathUtils.lerp(player.userData.currentBank, desiredBank, 5.4 * delta);
+
+      // 回転を組み合わせて機体姿勢を設定
+      const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), player.userData.yawAngle);
+      const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), player.userData.currentPitch);
+      const qBank = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), player.userData.currentBank);
+      player.quaternion.copy(qYaw).multiply(qPitch).multiply(qBank);
+
+      // 慣性的な移動: 速度ベクトルが機首方向へ滑らかに追従する
+      const forwardVector = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
+      const desiredVelocity = forwardVector.clone().multiplyScalar(player.userData.speed);
+      player.userData.velocity.lerp(desiredVelocity, Math.min(delta * 3.8, 1));
+      player.position.addScaledVector(player.userData.velocity, delta);
+
+      // 機首の上下動にも慣性を感じさせるため、ピッチ入力と実際の姿勢を補間
+      player.position.y = THREE.MathUtils.clamp(player.position.y, 5, 320);
+
       checkCollision();
       updateLasers(delta);
       updateCamera();
