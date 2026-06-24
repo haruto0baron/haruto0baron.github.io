@@ -1,379 +1,634 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>オープンワールド・フライトシューティング</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #04131b; color: #c8f1ff; font-family: system-ui, sans-serif; }
-    canvas { display: block; }
-    #hud { position: absolute; left: 16px; top: 16px; z-index: 10; line-height: 1.5; font-size: 16px; letter-spacing: 0.03em; }
-    #hud b { color: #91ffff; }
-    #crosshair {
-      position: absolute; left: 50%; top: 50%; width: 32px; height: 32px;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
-    #crosshair::before, #crosshair::after {
-      content: '';
-      position: absolute;
-      background: rgba(255,255,255,0.8);
-    }
-    #crosshair::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
-    #crosshair::after { top: 50%; left: 0; width: 100%; height: 2px; transform: translateY(-50%); }
-    #radar {
-      position: absolute; right: 16px; bottom: 16px; width: 220px; height: 220px; background: rgba(2,18,29,0.85); border: 1px solid rgba(145,255,255,0.3); border-radius: 12px; z-index: 10;
-      image-rendering: pixelated;
-    }
-    #help { position: absolute; left: 16px; bottom: 16px; z-index: 10; font-size: 14px; color: rgba(200,241,255,0.75); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D フライトゲーム - Quaternion Flight Physics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Arial', sans-serif;
+        }
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .hud-text {
+            color: #0f0;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #0f0;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        #hp-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        #score-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+        #minimap {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 150px;
+            height: 150px;
+            border: 2px solid #0f0;
+            background: rgba(0, 0, 0, 0.7);
+        }
+        #reticle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 2px solid #0f0;
+            border-radius: 50%;
+        }
+        #reticle::before,
+        #reticle::after {
+            content: '';
+            position: absolute;
+            background: #0f0;
+        }
+        #reticle::before {
+            width: 2px;
+            height: 20px;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        #reticle::after {
+            width: 20px;
+            height: 2px;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .reticle-dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #0f0;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px #0f0;
+        }
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #0f0;
+            padding: 30px;
+            text-align: center;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            z-index: 100;
+            max-width: 500px;
+            display: none;
+        }
+        #instructions h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-shadow: 0 0 20px #0f0;
+        }
+        #instructions p {
+            margin: 10px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
 </head>
 <body>
-  <div id="hud"><div><b>SCORE:</b> <span id="score">0</span></div><div><b>HP:</b> <span id="hp">100</span></div></div>
-  <div id="crosshair"></div>
-  <canvas id="radar" width="220" height="220"></canvas>
-  <div id="help">W/S: ピッチ / A/D: ヨー・ロール / SPACE: レーザー</div>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script>
-    // シーンの初期化
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x04131b, 0.0007);
+    <div id="hud">
+        <div id="hp-display" class="hud-text">
+            <div>HP: <span id="hp-value">100</span></div>
+        </div>
+        <div id="score-display" class="hud-text">
+            <div>SCORE: <span id="score-value">0</span></div>
+        </div>
+        <div id="reticle">
+            <div class="reticle-dot"></div>
+        </div>
+        <canvas id="minimap"></canvas>
+        <div id="instructions">
+            <h1>🚀 STAR FLIGHT</h1>
+            <p>W/S: ピッチ（上下）</p>
+            <p>A/D: ロール・ヨー（旋回）</p>
+            <p>マウス移動: カメラ追従</p>
+            <p>クリック: 射撃</p>
+            <p style="margin-top: 20px; font-size: 12px; opacity: 0.7;">任意の場所をクリックして開始</p>
+        </div>
+    </div>
 
-    const camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.1, 5000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x04131b);
-    document.body.appendChild(renderer.domElement);
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ========================================
+        // ゲーム状態管理
+        // ========================================
+        const gameState = {
+            isRunning: false,
+            hp: 100,
+            score: 0,
+            mouseX: 0,
+            mouseY: 0
+        };
 
-    // ライト配置
-    const ambientLight = new THREE.AmbientLight(0x9acbe6, 0.6);
-    scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(50, 120, 30);
-    scene.add(directionalLight);
-    const rimLight = new THREE.DirectionalLight(0x99ccff, 0.25);
-    rimLight.position.set(-80, 80, -80);
-    scene.add(rimLight);
+        // キー入力状態
+        const input = {
+            w: false, s: false, a: false, d: false
+        };
 
-    // 地面・グリッド
-    const groundGeo = new THREE.PlaneGeometry(2500, 2500, 100, 100);
-    const groundMat = new THREE.MeshPhongMaterial({ color: 0x12332b, flatShading: true, side: THREE.DoubleSide });
-    const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-    groundMesh.rotation.x = -Math.PI / 2;
-    scene.add(groundMesh);
+        // ========================================
+        // Three.js シーン初期化
+        // ========================================
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x001a00);
+        document.body.appendChild(renderer.domElement);
 
-    const grid = new THREE.GridHelper(2500, 100, 0x0c3f3c, 0x082c24);
-    grid.material.opacity = 0.7;
-    grid.material.transparent = true;
-    scene.add(grid);
+        // ========================================
+        // カメラ設定
+        // ========================================
+        camera.position.set(0, 3, 10);
+        camera.lookAt(0, 0, 0);
 
-    // プレイヤー機体
-    const player = new THREE.Group();
-    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x76d6ff, flatShading: true });
-    const wingMat = new THREE.MeshPhongMaterial({ color: 0x55a5ff, flatShading: true });
+        // ========================================
+        // ライティング
+        // ========================================
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
 
-    const fuselage = new THREE.ConeGeometry(4, 16, 6);
-    const fuselageMesh = new THREE.Mesh(fuselage, bodyMat);
-    fuselageMesh.rotation.x = Math.PI / 2;
-    player.add(fuselageMesh);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
 
-    const wingLeft = new THREE.BoxGeometry(2, 0.8, 16);
-    const wingLeftMesh = new THREE.Mesh(wingLeft, wingMat);
-    wingLeftMesh.position.set(-6, 0, -1);
-    wingLeftMesh.rotation.z = Math.PI / 8;
-    player.add(wingLeftMesh);
+        const pointLight = new THREE.PointLight(0x00ff00, 0.5);
+        pointLight.position.set(0, 10, 0);
+        scene.add(pointLight);
 
-    const wingRight = wingLeftMesh.clone();
-    wingRight.position.set(6, 0, -1);
-    wingRight.rotation.z = -Math.PI / 8;
-    player.add(wingRight);
+        // ========================================
+        // 地面とグリッド
+        // ========================================
+        const gridHelper = new THREE.GridHelper(1000, 100, 0x00aa00, 0x003300);
+        scene.add(gridHelper);
 
-    const tail = new THREE.CylinderGeometry(1.5, 1.5, 4, 6);
-    const tailMesh = new THREE.Mesh(tail, bodyMat);
-    tailMesh.rotation.x = Math.PI / 2;
-    tailMesh.position.set(0, 0, 5);
-    player.add(tailMesh);
+        // ========================================
+        // パーティクルシステム（空間の塵）
+        // ========================================
+        const particleGeometry = new THREE.BufferGeometry();
+        const particleCount = 2000;
+        const positions = new Float32Array(particleCount * 3);
 
-    player.position.set(0, 30, 0);
-    scene.add(player);
-
-    player.userData.velocity = new THREE.Vector3(0, 0, -1);
-    player.userData.speed = 140;
-    player.userData.hp = 100;
-    player.userData.score = 0;
-    player.userData.yawAngle = 0;
-    player.userData.yawVelocity = 0;
-    player.userData.pitchVelocity = 0;
-    player.userData.currentPitch = 0;
-    player.userData.currentBank = 0;
-
-    // 敵ターゲットと建造物
-    const targets = [];
-    const targetGroup = new THREE.Group();
-    scene.add(targetGroup);
-
-    function createTower() {
-      const tower = new THREE.Group();
-      const towerBase = new THREE.CylinderGeometry(5, 8, 26, 6);
-      const towerMesh = new THREE.Mesh(towerBase, new THREE.MeshPhongMaterial({ color: 0x7932e8, flatShading: true }));
-      towerMesh.position.y = 13;
-      tower.add(towerMesh);
-      const ring = new THREE.TorusGeometry(7, 1.2, 6, 16);
-      const ringMesh = new THREE.Mesh(ring, new THREE.MeshPhongMaterial({ color: 0xe8b84f, flatShading: true }));
-      ringMesh.rotation.x = Math.PI / 2;
-      ringMesh.position.y = 25;
-      tower.add(ringMesh);
-      return tower;
-    }
-
-    function createCrystal() {
-      const geo = new THREE.OctahedronGeometry(4);
-      const mat = new THREE.MeshPhongMaterial({ color: 0xff77d6, flatShading: true, emissive: 0x330033, emissiveIntensity: 0.3 });
-      return new THREE.Mesh(geo, mat);
-    }
-
-    function addTargets() {
-      for (let i = 0; i < 48; i++) {
-        const tower = createTower();
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 220 + Math.random() * 1000;
-        tower.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-        tower.position.y = 13;
-        tower.rotation.y = Math.random() * Math.PI * 2;
-        targetGroup.add(tower);
-        targets.push({ mesh: tower, type: 'tower', alive: true, radius: 12 });
-      }
-      for (let i = 0; i < 42; i++) {
-        const crystal = createCrystal();
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 180 + Math.random() * 900;
-        crystal.position.set(Math.cos(angle) * radius, 16 + Math.random() * 120, Math.sin(angle) * radius);
-        crystal.rotation.set(Math.random() * 2, Math.random() * 2, Math.random() * 2);
-        targetGroup.add(crystal);
-        targets.push({ mesh: crystal, type: 'crystal', alive: true, radius: 6 });
-      }
-    }
-    addTargets();
-
-    // レーザー（弾）
-    const lasers = [];
-    function fireLaser() {
-      const geometry = new THREE.CylinderGeometry(0.4, 0.4, 12, 6);
-      const material = new THREE.MeshBasicMaterial({ color: 0xff6565 });
-      const laser = new THREE.Mesh(geometry, material);
-      laser.rotation.x = Math.PI / 2;
-      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
-      laser.position.copy(player.position).addScaledVector(forward, 12);
-      laser.quaternion.copy(player.quaternion);
-      laser.userData = { velocity: forward.clone().multiplyScalar(220), life: 2.2 };
-      scene.add(laser);
-      lasers.push(laser);
-    }
-
-    // 操作状態
-    const input = { forward: 0, yaw: 0, roll: 0, fired: false };
-    window.addEventListener('keydown', (event) => {
-      switch (event.code) {
-        case 'KeyW': case 'ArrowUp': input.forward = 1; break;
-        case 'KeyS': case 'ArrowDown': input.forward = -1; break;
-        case 'KeyA': case 'ArrowLeft': input.yaw = 1; input.roll = 1; break;
-        case 'KeyD': case 'ArrowRight': input.yaw = -1; input.roll = -1; break;
-        case 'Space': if (!input.fired) { fireLaser(); input.fired = true; } break;
-      }
-    });
-    window.addEventListener('keyup', (event) => {
-      switch (event.code) {
-        case 'KeyW': case 'ArrowUp': if (input.forward === 1) input.forward = 0; break;
-        case 'KeyS': case 'ArrowDown': if (input.forward === -1) input.forward = 0; break;
-        case 'KeyA': case 'ArrowLeft': if (input.yaw === 1) input.yaw = 0; if (input.roll === 1) input.roll = 0; break;
-        case 'KeyD': case 'ArrowRight': if (input.yaw === -1) input.yaw = 0; if (input.roll === -1) input.roll = 0; break;
-        case 'Space': input.fired = false; break;
-      }
-    });
-
-    // レーダー描画準備
-    const radarCanvas = document.getElementById('radar');
-    const radarCtx = radarCanvas.getContext('2d');
-    const radarRadius = radarCanvas.width / 2 - 12;
-
-    function drawRadar() {
-      radarCtx.clearRect(0, 0, radarCanvas.width, radarCanvas.height);
-      radarCtx.fillStyle = 'rgba(1, 17, 28, 0.84)';
-      radarCtx.fillRect(0, 0, radarCanvas.width, radarCanvas.height);
-      radarCtx.strokeStyle = 'rgba(145,255,255,0.24)';
-      radarCtx.lineWidth = 2;
-      radarCtx.beginPath();
-      radarCtx.arc(radarCanvas.width / 2, radarCanvas.height / 2, radarRadius, 0, Math.PI * 2);
-      radarCtx.stroke();
-      radarCtx.beginPath();
-      radarCtx.arc(radarCanvas.width / 2, radarCanvas.height / 2, radarRadius * 0.5, 0, Math.PI * 2);
-      radarCtx.stroke();
-      radarCtx.beginPath();
-      radarCtx.moveTo(radarCanvas.width / 2 - radarRadius, radarCanvas.height / 2);
-      radarCtx.lineTo(radarCanvas.width / 2 + radarRadius, radarCanvas.height / 2);
-      radarCtx.moveTo(radarCanvas.width / 2, radarCanvas.height / 2 - radarRadius);
-      radarCtx.lineTo(radarCanvas.width / 2, radarCanvas.height / 2 + radarRadius);
-      radarCtx.stroke();
-
-      // 自機方向
-      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
-      radarCtx.strokeStyle = 'rgba(141,255,220,0.9)';
-      radarCtx.lineWidth = 3;
-      radarCtx.beginPath();
-      radarCtx.moveTo(radarCanvas.width / 2, radarCanvas.height / 2);
-      radarCtx.lineTo(radarCanvas.width / 2 + forward.x * radarRadius, radarCanvas.height / 2 - forward.z * radarRadius);
-      radarCtx.stroke();
-
-      // ターゲット描画
-      targets.forEach((target) => {
-        if (!target.alive) return;
-        const dx = target.mesh.position.x - player.position.x;
-        const dz = target.mesh.position.z - player.position.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist > 1400) return;
-        const ratio = Math.min(dist / 1400, 1);
-        const angle = Math.atan2(dz, dx);
-        const x = radarCanvas.width / 2 + Math.cos(angle) * ratio * radarRadius;
-        const y = radarCanvas.height / 2 - Math.sin(angle) * ratio * radarRadius;
-        radarCtx.fillStyle = target.type === 'tower' ? '#ff8888' : '#aaffff';
-        radarCtx.beginPath();
-        radarCtx.arc(x, y, 4, 0, Math.PI * 2);
-        radarCtx.fill();
-      });
-    }
-
-    // 衝突判定とHP処理
-    function checkCollision() {
-      const height = player.position.y;
-      if (height < 4) {
-        player.userData.hp -= 0.2;
-        player.position.y = 4;
-        player.userData.speed = Math.max(player.userData.speed * 0.98, 0.8);
-      }
-
-      targets.forEach((target) => {
-        if (!target.alive) return;
-        const distance = target.mesh.position.distanceTo(player.position);
-        if (distance < target.radius + 5) {
-          target.alive = false;
-          targetGroup.remove(target.mesh);
-          scene.remove(target.mesh);
-          player.userData.hp -= 12;
+        for (let i = 0; i < particleCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 2000;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 2000;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 2000;
         }
-      });
-      player.userData.hp = Math.max(player.userData.hp, 0);
-    }
 
-    // レーザーとターゲットの当たり判定
-    function updateLasers(delta) {
-      for (let i = lasers.length - 1; i >= 0; i--) {
-        const laser = lasers[i];
-        laser.position.addScaledVector(laser.userData.velocity, delta);
-        laser.userData.life -= delta;
-        if (laser.userData.life <= 0) {
-          scene.remove(laser);
-          lasers.splice(i, 1);
-          continue;
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particleMaterial = new THREE.PointsMaterial({ color: 0x00ff00, size: 2 });
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particles);
+
+        // ========================================
+        // プレイヤー飛行体（自機）の構築
+        // ========================================
+        const playerGroup = new THREE.Group();
+        scene.add(playerGroup);
+
+        // 機体メッシュ（シンプルな三角形で表現）
+        const playerGeometry = new THREE.BufferGeometry();
+        const playerVertices = new Float32Array([
+            // 前方の先端
+            0, 0.5, 2,
+            // 左翼
+            -1.5, 0, -1,
+            // 右翼
+            1.5, 0, -1,
+            // 底部の尾
+            0, -0.5, -1.5,
+        ]);
+        const playerFaces = new Uint16Array([
+            0, 1, 2,  // 上面
+            0, 2, 3,  // 右面
+            0, 3, 1,  // 左面
+            1, 3, 2   // 底面
+        ]);
+        playerGeometry.setAttribute('position', new THREE.BufferAttribute(playerVertices, 3));
+        playerGeometry.setIndex(new THREE.BufferAttribute(playerFaces, 1));
+        playerGeometry.computeVertexNormals();
+
+        const playerMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff6600,
+            emissive: 0xff3300,
+            metalness: 0.8,
+            roughness: 0.2
+        });
+        const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
+        playerGroup.add(playerMesh);
+
+        // ========================================
+        // プレイヤー飛行体の物理状態
+        // ========================================
+        const player = {
+            position: new THREE.Vector3(0, 10, 0),
+            velocity: new THREE.Vector3(0, 0, 0),
+            speed: 0.5,  // 移動速度
+            
+            // クォータニオンによる回転管理
+            quaternion: new THREE.Quaternion(),
+            
+            // 目標ロール角（度数法）
+            targetRoll: 0,
+            currentRoll: 0,
+            maxRoll: 60,  // 最大ロール角
+            rollSpeed: 0.08,  // ロール変化速度
+            
+            // ピッチ制御
+            pitch: 0,
+            pitchSpeed: 0.04,
+            maxPitch: 45,
+            
+            // ヨー制御
+            yaw: 0,
+            
+            // 水平復帰（Stabilizer）
+            stabilizationSpeed: 0.05  // スタビライザー復帰速度
+        };
+
+        // ========================================
+        // Quaternion関連ユーティリティ関数
+        // ========================================
+
+        /**
+         * ローカル軸周りの回転を適用
+         * オイラー角ではなくクォータニオンを使用することで、
+         * ジンバルロックを完全に防止
+         */
+        function applyLocalRotation(quaternion, axis, angle) {
+            const q = new THREE.Quaternion();
+            q.setFromAxisAngle(axis, angle);
+            quaternion.multiplyQuaternions(quaternion, q);
+            return quaternion;
         }
-        for (const target of targets) {
-          if (!target.alive) continue;
-          const d = laser.position.distanceTo(target.mesh.position);
-          if (d < target.radius + 2) {
-            target.alive = false;
-            targetGroup.remove(target.mesh);
-            scene.remove(target.mesh);
-            player.userData.score += target.type === 'tower' ? 140 : 80;
-            document.getElementById('score').textContent = player.userData.score;
-            scene.remove(laser);
-            lasers.splice(i, 1);
-            break;
-          }
+
+        /**
+         * 機体の前方ベクトルを取得（Z軸正方向）
+         */
+        function getForwardVector() {
+            const forward = new THREE.Vector3(0, 0, 1);
+            forward.applyQuaternion(player.quaternion);
+            return forward;
         }
-      }
-    }
 
-    // カメラ追従
-    const cameraLookAt = new THREE.Vector3();
-    function updateCamera() {
-      // 目標カメラ位置をプレイヤー後方に設定
-      const followOffset = new THREE.Vector3(0, 18, 42).applyQuaternion(player.quaternion);
-      const desiredPosition = player.position.clone().add(followOffset);
-      camera.position.lerp(desiredPosition, 0.1);
+        /**
+         * 機体の右方ベクトルを取得（X軸正方向）
+         */
+        function getRightVector() {
+            const right = new THREE.Vector3(1, 0, 0);
+            right.applyQuaternion(player.quaternion);
+            return right;
+        }
 
-      // カメラがプレイヤーの前方を見続けるようにする
-      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
-      cameraLookAt.copy(player.position).add(forward.multiplyScalar(24)).add(new THREE.Vector3(0, 7, 0));
-      const desiredQuat = new THREE.Quaternion().setFromRotationMatrix(
-        new THREE.Matrix4().lookAt(camera.position, cameraLookAt, new THREE.Vector3(0, 1, 0))
-      );
-      camera.quaternion.slerp(desiredQuat, 0.12);
-    }
+        /**
+         * 機体の上方ベクトルを取得（Y軸正方向）
+         */
+        function getUpVector() {
+            const up = new THREE.Vector3(0, 1, 0);
+            up.applyQuaternion(player.quaternion);
+            return up;
+        }
 
-    // 画面サイズ
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+        // ========================================
+        // プレイヤー入力処理
+        // ========================================
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'w') input.w = true;
+            if (e.key === 's') input.s = true;
+            if (e.key === 'a') input.a = true;
+            if (e.key === 'd') input.d = true;
+        });
 
-    const clock = new THREE.Clock();
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'w') input.w = false;
+            if (e.key === 's') input.s = false;
+            if (e.key === 'a') input.a = false;
+            if (e.key === 'd') input.d = false;
+        });
 
-    function animate() {
-      const delta = Math.min(clock.getDelta(), 0.033);
+        document.addEventListener('mousemove', (e) => {
+            gameState.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            gameState.mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
 
-      const maxYawSpeed = 1.8;
-      const maxPitchSpeed = 1.1;
-      const targetBankAngle = THREE.MathUtils.degToRad(38);
+        document.addEventListener('click', () => {
+            if (!gameState.isRunning) {
+                gameState.isRunning = true;
+                document.getElementById('instructions').style.display = 'none';
+            }
+        });
 
-      // 入力から目標角速度を計算し、慣性を持たせて滑らかに変化
-      const desiredYawVelocity = input.yaw * maxYawSpeed;
-      const desiredPitchVelocity = input.forward * maxPitchSpeed;
-      player.userData.yawVelocity = THREE.MathUtils.lerp(player.userData.yawVelocity, desiredYawVelocity, 0.16);
-      player.userData.pitchVelocity = THREE.MathUtils.lerp(player.userData.pitchVelocity, desiredPitchVelocity, 0.14);
+        // ========================================
+        // プレイヤ���更新処理（物理演算の中核）
+        // ========================================
+        function updatePlayer() {
+            // ================================================================
+            // 【ピッチ制御】W/Sキー：機首の上下傾き
+            // クォータニオン：ローカルX軸（右方向）周りの回転
+            // ================================================================
+            if (input.w) {
+                player.pitch = Math.max(player.pitch - player.pitchSpeed, -player.maxPitch * Math.PI / 180);
+            } else if (input.s) {
+                player.pitch = Math.min(player.pitch + player.pitchSpeed, player.maxPitch * Math.PI / 180);
+            } else {
+                // ピッチの自動復帰（スタビライザー）
+                player.pitch *= 0.95;
+            }
 
-      player.userData.yawAngle += player.userData.yawVelocity * delta;
-      player.userData.currentPitch = THREE.MathUtils.lerp(
-        player.userData.currentPitch,
-        input.forward * THREE.MathUtils.degToRad(20),
-        4.6 * delta
-      );
+            // クォータニオンにピッチを反映
+            const rightVector = getRightVector();
+            player.quaternion = applyLocalRotation(
+                player.quaternion,
+                rightVector,
+                player.pitch
+            );
 
-      // 旋回時のバンク角を滑らかに補間
-      const desiredBank = -input.yaw * targetBankAngle;
-      player.userData.currentBank = THREE.MathUtils.lerp(player.userData.currentBank, desiredBank, 5.4 * delta);
+            // ================================================================
+            // 【ロール・ヨー連動制御】A/Dキー：航空力学的な旋回
+            // 1. 目標ロール角を決定（A/Dの入力に応じて±maxRoll方向に変更）
+            // 2. 現在のロール角を滑らかに目標値へ補間（Lerp）
+            // 3. ロール角に応じてヨー（左右旋回）のモーメントを発生させる
+            // ================================================================
+            
+            // 目標ロール角の決定
+            if (input.a) {
+                player.targetRoll = -player.maxRoll * Math.PI / 180;  // 左にロール
+            } else if (input.d) {
+                player.targetRoll = player.maxRoll * Math.PI / 180;   // 右にロール
+            } else {
+                player.targetRoll = 0;  // 水平への復帰
+            }
 
-      // 回転を組み合わせて機体姿勢を設定
-      const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), player.userData.yawAngle);
-      const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), player.userData.currentPitch);
-      const qBank = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), player.userData.currentBank);
-      player.quaternion.copy(qYaw).multiply(qPitch).multiply(qBank);
+            // 現在のロール角を目標値へ滑らかに補間
+            player.currentRoll += (player.targetRoll - player.currentRoll) * player.rollSpeed;
 
-      // 慣性的な移動: 速度ベクトルが機首方向へ滑らかに追従する
-      const forwardVector = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
-      const desiredVelocity = forwardVector.clone().multiplyScalar(player.userData.speed);
-      player.userData.velocity.lerp(desiredVelocity, Math.min(delta * 3.8, 1));
-      player.position.addScaledVector(player.userData.velocity, delta);
+            // ロール（Z軸周りの回転）をクォータニオンに適用
+            const forwardVector = getForwardVector();
+            player.quaternion = applyLocalRotation(
+                player.quaternion,
+                forwardVector,
+                player.currentRoll * 0.3  // ロール角の滑らかさを調整
+            );
 
-      // 機首の上下動にも慣性を感じさせるため、ピッチ入力と実際の姿勢を補間
-      player.position.y = THREE.MathUtils.clamp(player.position.y, 5, 320);
+            // ================================================================
+            // 【ヨー（旋回）の発生】航空力学的な挙動
+            // ロール角が存在する場合、そのロール角に比例したヨー速度を発生させる
+            // これにより、左右旋回キー（A/D）を押すと、機体が傾きながら旋回する
+            // ================================================================
+            const yawAmount = Math.sin(player.currentRoll) * 0.02;  // ロール角からヨー速度を計算
+            const upVector = getUpVector();
+            player.quaternion = applyLocalRotation(
+                player.quaternion,
+                upVector,
+                yawAmount
+            );
 
-      checkCollision();
-      updateLasers(delta);
-      updateCamera();
-      drawRadar();
-      renderer.render(scene, camera);
+            // ================================================================
+            // 【機体の移動】進行方向への直進
+            // 前方ベクトル × 速度 で、機体が向いている方向へ移動
+            // ================================================================
+            const forward = getForwardVector();
+            player.position.add(forward.clone().multiplyScalar(player.speed));
 
-      if (player.userData.hp <= 0) {
-        document.getElementById('hp').textContent = 0;
-        return;
-      }
-      document.getElementById('hp').textContent = Math.floor(player.userData.hp);
-      requestAnimationFrame(animate);
-    }
+            // 無限空間表現：パーティクルの位置をプレイヤー周囲にリセット
+            const positions = particles.geometry.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                if (Math.abs(positions[i * 3] - player.position.x) > 500) {
+                    positions[i * 3] = player.position.x + (Math.random() - 0.5) * 1000;
+                }
+                if (Math.abs(positions[i * 3 + 1] - player.position.y) > 500) {
+                    positions[i * 3 + 1] = player.position.y + (Math.random() - 0.5) * 1000;
+                }
+                if (Math.abs(positions[i * 3 + 2] - player.position.z) > 500) {
+                    positions[i * 3 + 2] = player.position.z + (Math.random() - 0.5) * 1000;
+                }
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
 
-    animate();
-  </script>
+            // プレイヤーグループの位置と回転をシーンに反映
+            playerGroup.position.copy(player.position);
+            playerGroup.quaternion.copy(player.quaternion);
+        }
+
+        // ========================================
+        // ドラマチックなカメラワーク
+        // ========================================
+        const cameraState = {
+            targetPosition: new THREE.Vector3(),
+            targetLookAt: new THREE.Vector3(),
+            cameraRollInfluence: 0.15,  // ロール傾きの追従度（0.0～1.0）
+            positionSmoothness: 0.08,   // カメラ位置の追従速度
+            lookAtSmoothness: 0.06      // 注視点の追従速度
+        };
+
+        function updateCamera() {
+            // ================================================================
+            // 【カメラ位置の設定】機体の真後ろから追従
+            // プレイヤーから後方へオフセット、かつ上方位置から俯瞰的に見る
+            // ================================================================
+            const backOffset = -15;  // 後ろへのオフセット
+            const upOffset = 4;      // 上へのオフセット
+
+            const forward = getForwardVector();
+            const up = getUpVector();
+
+            // 目標カメラ位置を計算
+            cameraState.targetPosition.copy(player.position);
+            cameraState.targetPosition.add(forward.clone().multiplyScalar(backOffset));
+            cameraState.targetPosition.add(up.clone().multiplyScalar(upOffset));
+
+            // 目標注視点（ちょっと前方を見る）
+            cameraState.targetLookAt.copy(player.position);
+            cameraState.targetLookAt.add(forward.clone().multiplyScalar(3));
+
+            // ================================================================
+            // 【カメラ位置の補間】Lerp による滑らかな追従
+            // 急激な動きを避け、心地よいフローティング感を演出
+            // ================================================================
+            camera.position.lerp(cameraState.targetPosition, cameraState.positionSmoothness);
+            
+            // 注視点も補間
+            const currentLookAt = new THREE.Vector3();
+            currentLookAt.lerpVectors(
+                camera.getWorldDirection(currentLookAt).multiplyScalar(camera.position.length()).add(camera.position),
+                cameraState.targetLookAt,
+                cameraState.lookAtSmoothness
+            );
+
+            // ================================================================
+            // 【カメラのロール追従】機体傾きの遅れ追従
+            // プレイヤーのロール角に対して、カメラも数％～数十％遅れて傾く
+            // これにより、旋回時の重力感とスピード感が劇的に向上
+            // ================================================================
+            const upDirection = new THREE.Vector3(0, 1, 0);
+            const cameraRoll = player.currentRoll * cameraState.cameraRollInfluence;
+
+            // カメラの上ベクトルにロール を適用（Quaternion使用）
+            const cameraRollQuat = new THREE.Quaternion();
+            const viewDirection = cameraState.targetLookAt.clone().sub(camera.position).normalize();
+            cameraRollQuat.setFromAxisAngle(viewDirection, cameraRoll);
+            upDirection.applyQuaternion(cameraRollQuat);
+
+            camera.lookAt(cameraState.targetLookAt);
+            camera.up.copy(upDirection);
+        }
+
+        // ========================================
+        // 照準（レティクル）のスターフォックス的な連動
+        // ========================================
+        const reticleState = {
+            position: new THREE.Vector3(0, 0, 1),  // 画面中央相対座標
+            targetOffset: new THREE.Vector3(0, 0, 0),
+            offsetScale: 5,  // 先行距離のスケール
+            smoothness: 0.1  // 照準の補間速度
+        };
+
+        function updateReticle() {
+            // ================================================================
+            // 【照準の先行移動】自機の移動方向に向かって先行
+            // マウスの移動方向をセンシング（実装例：速度に基づく先行）
+            // ================================================================
+            const forward = getForwardVector();
+            
+            // 機体の速度ベクトルから照準のオフセットを計算
+            const velocityDirection = forward.clone().multiplyScalar(player.speed);
+            reticleState.targetOffset.copy(velocityDirection).multiplyScalar(reticleState.offsetScale);
+
+            // 照準位置を補間（Lerp）で滑らかに移動
+            reticleState.position.lerp(
+                new THREE.Vector3(0, 0, 1).add(reticleState.targetOffset),
+                reticleState.smoothness
+            );
+
+            // ================================================================
+            // 【照準の画面座標への変換】WebGL座標からスクリーン座標へ
+            // ================================================================
+            const screenPosition = reticleState.position.clone().project(camera);
+            
+            const reticleElement = document.getElementById('reticle');
+            const x = (screenPosition.x + 1) / 2 * window.innerWidth;
+            const y = (1 - screenPosition.y) / 2 * window.innerHeight;
+
+            reticleElement.style.left = x + 'px';
+            reticleElement.style.top = y + 'px';
+            reticleElement.style.transform = `translate(-50%, -50%) rotate(${player.currentRoll * 180 / Math.PI}deg)`;
+        }
+
+        // ========================================
+        // HUD 更新（ミニマップ含）
+        // ========================================
+        function updateHUD() {
+            document.getElementById('hp-value').textContent = gameState.hp;
+            document.getElementById('score-value').textContent = gameState.score;
+
+            // ミニマップ描画
+            const minimapCanvas = document.getElementById('minimap');
+            if (minimapCanvas && minimapCanvas.getContext) {
+                const ctx = minimapCanvas.getContext('2d');
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, 150, 150);
+
+                // グリッド描画
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(i * 50, 0);
+                    ctx.lineTo(i * 50, 150);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * 50);
+                    ctx.lineTo(150, i * 50);
+                    ctx.stroke();
+                }
+
+                // プレイヤー位置
+                const playerMapX = 75;
+                const playerMapY = 75;
+                ctx.fillStyle = '#ff6600';
+                ctx.beginPath();
+                ctx.arc(playerMapX, playerMapY, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 機首方向を示す線
+                const forward = getForwardVector();
+                ctx.strokeStyle = '#ff6600';
+                ctx.beginPath();
+                ctx.moveTo(playerMapX, playerMapY);
+                ctx.lineTo(playerMapX + forward.x * 10, playerMapY + forward.z * 10);
+                ctx.stroke();
+            }
+        }
+
+        // ========================================
+        // アニメーションループ
+        // ========================================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (gameState.isRunning) {
+                updatePlayer();
+                updateCamera();
+                updateReticle();
+            }
+
+            updateHUD();
+
+            renderer.render(scene, camera);
+        }
+
+        // ========================================
+        // ウィンドウリサイズ対応
+        // ========================================
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // アニメーション開始
+        animate();
+    </script>
 </body>
 </html>
