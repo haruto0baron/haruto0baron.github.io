@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>haruto0baron@github:~</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Courier New", Consolas, Monaco, monospace;
+            background: #0d1117;
+            color: #3fb950;
+            line-height: 1.7;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 0.95em;
+        }
+
+        /* カーソル点滅アニメーション */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1.1em;
+            background: #3fb950;
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: blink 1s infinite;
+        }
+
+        /* プロンプト */
+        .prompt {
+            color: #58a6ff;
+        }
+
+        .prompt-user {
+            color: #d2a8ff;
+        }
+
+        .prompt-path {
+            color: #79c0ff;
+        }
+
+        /* コマンド出力の見出し */
+        h1, h2, h3 {
+            font-family: "Courier New", Consolas, Monaco, monospace;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #7ee787;
+        }
+
+        h1 {
+            font-size: 1.3em;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+
+        h2 {
+            font-size: 1.1em;
+            color: #56d364;
+        }
+
+        h3 {
+            font-size: 1em;
+            color: #3fb950;
+            margin-top: 14px;
+        }
+
+        /* リンク */
+        a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+            color: #79c0ff;
+        }
+
+        /* 区切り線 */
+        hr {
+            border: none;
+            border-top: 1px solid #30363d;
+            margin: 20px 0;
+        }
+
+        /* プロジェクトアイテム */
+        .item {
+            margin-bottom: 14px;
+            padding-left: 16px;
+            border-left: 2px solid #21262d;
+        }
+
+        .item:hover {
+            border-left-color: #3fb950;
+        }
+
+        .item p {
+            color: #8b949e;
+            font-size: 0.9em;
+            margin: 4px 0;
+        }
+
+        /* タグ */
+        .tag {
+            display: inline-block;
+            background: #21262d;
+            color: #a5d6ff;
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-right: 4px;
+            border: 1px solid #30363d;
+        }
+
+        /* コマンドライン */
+        .cmd-line {
+            margin: 4px 0;
+        }
+
+        .output {
+            color: #c9d1d9;
+            margin: 6px 0 6px 16px;
+        }
+
+        .comment {
+            color: #8b949e;
+        }
+
+        /* ヘッダーASCIIArt風 */
+        .ascii-header {
+            color: #56d364;
+            font-size: 0.8em;
+            line-height: 1.4;
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+
+        /* フッター */
+        footer {
+            margin-top: 40px;
+            font-size: 0.8em;
+            color: #484f58;
+            border-top: 1px solid #30363d;
+            padding-top: 16px;
+        }
+
+        footer a {
+            color: #6e7681;
+            margin-right: 12px;
+        }
+
+        /* スキルリスト */
+        .skill-list {
+            color: #c9d1d9;
+            margin: 4px 0 4px 16px;
+        }
+
+        /* スクロールバー */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+
+        /* 選択色 */
+        ::selection {
+            background: #238636;
+            color: #fff;
+        }
+
+        /* スマホ対応 */
+        @media (max-width: 600px) {
+            body {
+                font-size: 0.85em;
+                padding: 12px;
+            }
+            .ascii-header {
+                font-size: 0.6em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ASCII Art ヘッダー -->
+    <div class="ascii-header">
+ | |__   __ _ _ __ _   _| |_ ___  / _ \| |__   __ _ _ __ ___  _ __  
+ | '_ \ / _` | '__| | | | __/ _ \| | | | '_ \ / _` | '__/ _ \| '_ \ 
+ | | | | (_| | |  | |_| | || (_) | |_| | |_) | (_| | | | (_) | | | |
+ |_| |_|\__,_|_|   \__,_|\__\___/ \___/|_.__/ \__,_|_|  \___/|_| |_|                       
+    </div>
+
+    <div class="cmd-line">
+        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> whoami
+    </div>
+    <div class="output">Haruto Baron - 中学生 Developer</div>
+
+    <div class="cmd-line">
+        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> ls links/
+    </div>
+    <div class="output">
+        <a href="https://github.com/haruto0baron" target="_blank">GitHub</a>  
+    </div>
+
+    <hr>
+
+    <div class="cmd-line">
+        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> cat about.txt
+    </div>
+    <div class="output">
+        <p>中学生です。低レイヤー技術を勉強しながら、</p>
+        <p>小さなカーネルやアプリを作っています。</p>
+        <p>コードを書くことが好きで、毎日少しずつ成長中です。</p>
+    </div>
+
+    <hr>
+
+    <div class="cmd-line">
+        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> ls projects/
+    </div>
+    <div class="output">
+
+        <div class="item">
+            <h3>project-one/</h3>
+            <p>ここにプロジェトの説明を書きます。何を作ったか、どんな機能があるか。</p>
+            <span class="tag">Python</span>
+            <span class="tag">Flask</span>
+            <br>
+            <a href="https://github.com/haruto0baron/project-1" target="_blank">→ GitHub</a>
+        </div>
+
+        <div class="item">
+            <h3>project-two/</h3>
+            <p>別のプロジェクトの説明です。Webアプリや自動化ツールなど。</p>
+            <span class="tag">JavaScript</span>
+            <span class="tag">HTML</span>
+            <br>
+            <a href="https://github.com/haruto0baron/project-2" target="_blank">→ GitHub</a>
+        </div>
+
+        <div class="item">
+            <h3>project-three/</h3>
+            <p>まだプロジェクトがない場合は、このブロックを除するか、Coming Soon に書き換えてください。</p>
+            <span class="tag">Coming Soon</span>
+        </div>
+
+    </div>
+
+    <hr>
+
+    <div class="cmd-line">
+        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> cat skills.json
+    </div>
+    <div class="output">
+        <p><span class="comment">// Programming Languages</span></p>
+        <p class="skill-list">Python, JavaScript, HTML, CSS</p>
+
+        <p><span class="comment">// Tools</span></p>
+        <p class="skill-list">Git, GitHub, VS Code</p>
+
+        <p><span class="comment">// Learning</span></p>
+        <p class="skill-list">React, Node.js, C++</p>
+    </div>
+
+    <hr>
+
+    <div class="cmd-line">
+        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> echo "Thanks for visiting!"
+    </div>
+    <div class="output">Thanks for visiting!</div>
+
+    <div class="cmd-line">
+        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> <span class="cursor"></span>
+    </div>
+
+    <footer>
+        <p>
+            <a href="https://haruto0baron.github.io">Home</a>
+            <a href="https://github.com/haruto0baron" target="_blank">GitHub</a>
+        </p>
+        <p style="margin-top:8px;">© 2026 Haruto Baron | Hosted on GitHub Pages</p>
+    </footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>
