@@ -1,309 +1,341 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>haruto0baron@github:~</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="HARUTO'S LAB - Programming, Retro Computing and Game Development.">
+<title>HARUTO'S LAB | Retro Computer Laboratory</title>
 
-        body {
-            font-family: "Courier New", Consolas, Monaco, monospace;
-            background: #0d1117;
-            color: #3fb950;
-            line-height: 1.7;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-            font-size: 0.95em;
-        }
+<style>
+:root {
+  --bg: #080c18;
+  --panel: #101a30;
+  --cyan: #55e6f5;
+  --green: #78efaa;
+  --amber: #ffc66d;
+  --text: #d6e5f5;
+  --muted: #8497b2;
+  --border: #31516e;
+}
 
-        /* カーソル点滅アニメーション */
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
+* {
+  box-sizing: border-box;
+}
 
-        .cursor {
-            display: inline-block;
-            width: 8px;
-            height: 1.1em;
-            background: #3fb950;
-            margin-left: 2px;
-            vertical-align: text-bottom;
-            animation: blink 1s infinite;
-        }
+html {
+  scroll-behavior: smooth;
+}
 
-        /* プロンプト */
-        .prompt {
-            color: #58a6ff;
-        }
+body {
+  margin: 0;
+  padding: 20px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Courier New", monospace;
+  line-height: 1.8;
+}
 
-        .prompt-user {
-            color: #d2a8ff;
-        }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  background: repeating-linear-gradient(
+    transparent 0px,
+    transparent 3px,
+    rgba(100,180,255,0.025) 4px
+  );
+}
 
-        .prompt-path {
-            color: #79c0ff;
-        }
+a {
+  color: var(--cyan);
+  text-decoration: none;
+}
 
-        /* コマンド出力の見出し */
-        h1, h2, h3 {
-            font-family: "Courier New", Consolas, Monaco, monospace;
-            font-weight: bold;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            color: #7ee787;
-        }
+a:hover {
+  color: var(--amber);
+  text-decoration: underline;
+}
 
-        h1 {
-            font-size: 1.3em;
-            border-bottom: 1px solid #30363d;
-            padding-bottom: 8px;
-        }
+.container {
+  max-width: 1000px;
+  margin: auto;
+}
 
-        h2 {
-            font-size: 1.1em;
-            color: #56d364;
-        }
+header {
+  border: 2px solid var(--cyan);
+  background: var(--panel);
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 0 18px rgba(85,230,245,0.12);
+}
 
-        h3 {
-            font-size: 1em;
-            color: #3fb950;
-            margin-top: 14px;
-        }
+.logo {
+  color: var(--cyan);
+  font-size: clamp(25px, 5vw, 42px);
+  font-weight: bold;
+  letter-spacing: 4px;
+  margin: 5px 0;
+}
 
-        /* リンク */
-        a {
-            color: #58a6ff;
-            text-decoration: none;
-        }
+.subtitle {
+  color: var(--amber);
+  font-size: 12px;
+  letter-spacing: 3px;
+}
 
-        a:hover {
-            text-decoration: underline;
-            color: #79c0ff;
-        }
+.system {
+  color: var(--green);
+  font-size: 12px;
+}
 
-        /* 区切り線 */
-        hr {
-            border: none;
-            border-top: 1px solid #30363d;
-            margin: 20px 0;
-        }
+nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 25px;
+  padding: 15px;
+  margin: 15px 0 25px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
 
-        /* プロジェクトアイテム */
-        .item {
-            margin-bottom: 14px;
-            padding-left: 16px;
-            border-left: 2px solid #21262d;
-        }
+nav a {
+  font-size: 13px;
+  font-weight: bold;
+}
 
-        .item:hover {
-            border-left-color: #3fb950;
-        }
+section {
+  margin: 25px 0;
+  padding: 22px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
 
-        .item p {
-            color: #8b949e;
-            font-size: 0.9em;
-            margin: 4px 0;
-        }
+.section-title {
+  color: var(--cyan);
+  font-size: 19px;
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 10px;
+  margin-top: 0;
+}
 
-        /* タグ */
-        .tag {
-            display: inline-block;
-            background: #21262d;
-            color: #a5d6ff;
-            padding: 1px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            margin-right: 4px;
-            border: 1px solid #30363d;
-        }
+.section-title::before {
+  content: "■ ";
+  color: var(--amber);
+}
 
-        /* コマンドライン */
-        .cmd-line {
-            margin: 4px 0;
-        }
+.hero {
+  padding: 35px 25px;
+  border: 2px double var(--cyan);
+}
 
-        .output {
-            color: #c9d1d9;
-            margin: 6px 0 6px 16px;
-        }
+.hero h1 {
+  color: var(--green);
+  font-size: clamp(22px, 4vw, 32px);
+}
 
-        .comment {
-            color: #8b949e;
-        }
+.hero p {
+  color: var(--muted);
+}
 
-        /* ヘッダーASCIIArt風 */
-        .ascii-header {
-            color: #56d364;
-            font-size: 0.8em;
-            line-height: 1.4;
-            margin-bottom: 16px;
-            overflow-x: auto;
-            white-space: pre-wrap;  /* 改行とスペースを保持 */
-            word-wrap: break-word;  /* 幅からはみ出したら折り返し */
-        }
+.status {
+  display: inline-block;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 2px 10px;
+  font-size: 12px;
+}
 
-        .ascii-header pre {
-            margin: 0;
-            font-family: "Courier New", Consolas, Monaco, monospace;
-            color: #56d364;
-        }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 15px;
+}
 
-        /* フッター */
-        footer {
-            margin-top: 40px;
-            font-size: 0.8em;
-            color: #484f58;
-            border-top: 1px solid #30363d;
-            padding-top: 16px;
-        }
+.card {
+  padding: 18px;
+  background: #0b1324;
+  border: 1px solid var(--border);
+  transition: border-color .2s, transform .2s;
+}
 
-        footer a {
-            color: #6e7681;
-            margin-right: 12px;
-        }
+.card:hover {
+  border-color: var(--cyan);
+  transform: translateY(-3px);
+}
 
-        /* スキルリスト */
-        .skill-list {
-            color: #c9d1d9;
-            margin: 4px 0 4px 16px;
-        }
+.card h3 {
+  color: var(--amber);
+  font-size: 16px;
+}
 
-        /* スクロールバー */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
+.card p {
+  color: var(--muted);
+  font-size: 13px;
+}
 
-        ::-webkit-scrollbar-track {
-            background: #0d1117;
-        }
+.tag {
+  display: inline-block;
+  color: var(--cyan);
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  margin: 3px;
+  font-size: 11px;
+}
 
-        ::-webkit-scrollbar-thumb {
-            background: #30363d;
-            border-radius: 4px;
-        }
+.article {
+  padding: 13px 0;
+  border-bottom: 1px dashed var(--border);
+}
 
-        /* 選択色 */
-        ::selection {
-            background: #238636;
-            color: #fff;
-        }
+.article h3 {
+  margin: 0;
+  font-size: 15px;
+}
 
-        /* スマホ対応 */
-        @media (max-width: 600px) {
-            body {
-                font-size: 0.85em;
-                padding: 12px;
-            }
-            .ascii-header {
-                font-size: 0.55em;  /* スマホでさらに小さく */
-                line-height: 1.3;
-            }
-        }
-    </style>
+.article p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 25px;
+  border-top: 1px solid var(--border);
+  margin-top: 35px;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  section {
+    padding: 15px;
+  }
+
+  nav {
+    gap: 14px;
+  }
+
+  header {
+    padding: 18px 10px;
+  }
+}
+</style>
 </head>
+
 <body>
+<div class="container">
 
-    <!-- ASCII Art ヘッダー -->
-    <div class="ascii-header">
-<pre>
- | |__   __ _ _ __ _   _| |_ ___  / _ \| |__   __ _ _ __ ___  _ __
- | '_ \ / _` | '__| | | | __/ _ \| | | | '_ \ / _` | '__/ _ \| '_ \
- | | | | (_| | |  | |_| | || (_) | |_| | |_) | (_| | | | (_) | | | |
- |_| |_|\__,_|_|   \__,_|\__\___/ \___/|_.__/ \__,_|_|  \___/|_| |_|
-</pre>
-    </div>
+<header>
+  <div class="system">RETRO COMPUTER SYSTEM ver. 1.0</div>
+  <div class="logo">HARUTO'S LAB</div>
+  <div class="subtitle">RETRO COMPUTER LABORATORY</div>
+  <p class="system">PROGRAMMING / GAME DEV / LOW LEVEL</p>
+</header>
 
-    <div class="cmd-line">
-        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> whoami
-    </div>
-    <div class="output">Haruto Baron - 中学生 Developer</div>
+<nav>
+  <a href="#home">[ HOME ]</a>
+  <a href="#projects">[ PROJECTS ]</a>
+  <a href="#blog">[ BLOG ]</a>
+  <a href="#about">[ ABOUT ]</a>
+  <a href="https://github.com/haruto0baron" target="_blank" rel="noopener">[ GITHUB ]</a>
+</nav>
 
-    <div class="cmd-line">
-        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> ls links/
-    </div>
-    <div class="output">
-        <a href="https://github.com/haruto0baron" target="_blank">GitHub</a>
-    </div>
+<main>
 
-    <hr>
+<section class="hero" id="home">
+  <span class="status">● SYSTEM ONLINE</span>
+  <h1>Welcome to HARUTO'S LAB.</h1>
+  <p>
+    プログラミング、ゲーム制作、レトロコンピューター。
+    技術を学び、実験し、自分の作品を作る研究室です。
+  </p>
+  <p class="system">> INITIALIZING... COMPLETE.</p>
+</section>
 
-    <div class="cmd-line">
-        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> cat about.txt
-    </div>
-    <div class="output">
-        <p>中学生です。低レイヤー技術を勉強しながら、</p>
-        <p>小さなカーネルやアプリを作っています。</p>
-        <p>コードを書くことが好きで、毎日少しずつ成長中です。</p>
-    </div>
+<section id="projects">
+  <h2 class="section-title">PROJECT DATABASE</h2>
+  <div class="grid">
 
-    <hr>
+    <article class="card">
+      <h3>01. GAME DEVELOPMENT</h3>
+      <p>ScratchやPython、Godotを使ったゲーム制作。</p>
+      <span class="tag">GAME</span>
+      <span class="tag">PYTHON</span>
+    </article>
 
-    <div class="cmd-line">
-        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> ls projects/
-    </div>
-    <div class="output">
+    <article class="card">
+      <h3>02. LINUX RESEARCH</h3>
+      <p>Linux、カーネル、組み込みシステムの研究。</p>
+      <span class="tag">LINUX</span>
+      <span class="tag">C</span>
+    </article>
 
-        <div class="item">
-            <h3>site/</h3>
-            <p>ターミナル風のプロフィールサイト。HTMLとCSSだけで動作し、GitHub Pagesでホストしています。</p>
-            <span class="tag">HTML</span>
-            <span class="tag">CSS</span>
-            <br>
-            <a href="https://github.com/haruto0baron" target="_blank">→ GitHub</a>
-        </div>
+    <article class="card">
+      <h3>03. RETRO COMPUTING</h3>
+      <p>PC-98や電子辞書など、レトロ機器の研究。</p>
+      <span class="tag">RETRO</span>
+      <span class="tag">HARDWARE</span>
+    </article>
 
-        <div class="item">
-            <h3>projects/</h3>
-            <p>プロジェクト一覧です。</p>
-            <span class="tag">HTML</span>
-            <span class="tag">CSS</span>
-            <br>
-            <a href="/projects" target="_blank">→ cd projects/</a>
-        </div>
+    <article class="card">
+      <h3>04. WEB DEVELOPMENT</h3>
+      <p>HTML、CSS、JavaScriptによるWeb開発。</p>
+      <span class="tag">HTML</span>
+      <span class="tag">CSS</span>
+    </article>
 
-    </div>
+  </div>
+  <p><a href="/projects/">→ VIEW ALL PROJECTS</a></p>
+</section>
 
-    <hr>
+<section id="blog">
+  <h2 class="section-title">TECHNICAL JOURNAL</h2>
 
-    <div class="cmd-line">
-        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> cat skills.json
-    </div>
-    <div class="output">
-        <p><span class="comment">// Programming Languages</span></p>
-        <p class="skill-list">Java, C, Python, Scratch(?)</p>
+  <div class="article">
+    <h3>COMING SOON: 技術ブログを準備中</h3>
+    <p>ゲーム制作やLinux、プログラミングについて発信していきます。</p>
+  </div>
 
-        <p><span class="comment">// Tools</span></p>
-        <p class="skill-list">Git, GitHub, VS Code, Linux</p>
+  <p class="system">> BLOG DATABASE: INITIALIZING...</p>
+</section>
 
-        <p><span class="comment">// Learning</span></p>
-        <p class="skill-list">C#, Rust, C++, nim</p>
-    </div>
+<section id="about">
+  <h2 class="section-title">ABOUT THE DEVELOPER</h2>
+  <p>
+    プログラミングや低レイヤー技術に興味を持ち、
+    小さなカーネルやアプリ、ゲームなどの制作に挑戦しています。
+  </p>
+  <p class="system">CURRENTLY LEARNING:</p>
+  <div>
+    <span class="tag">C</span>
+    <span class="tag">Python</span>
+    <span class="tag">Java</span>
+    <span class="tag">HTML</span>
+    <span class="tag">CSS</span>
+    <span class="tag">Linux</span>
+    <span class="tag">Rust</span>
+  </div>
+  <p><a href="https://github.com/haruto0baron" target="_blank" rel="noopener">→ GitHub Profile</a></p>
+</section>
 
-    <hr>
+</main>
 
-    <div class="cmd-line">
-        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> echo "Thanks for visiting!"
-    </div>
-    <div class="output">Thanks for visiting!</div>
+<footer>
+  <p>HARUTO'S LABORATORY</p>
+  <p>© 2026 HARUTO'S LAB</p>
+  <p>POWERED BY GITHUB PAGES</p>
+  <p class="system">END OF TRANSMISSION.</p>
+</footer>
 
-    <div class="cmd-line">
-        <span class="prompt-user">haruto0baron</span><span class="prompt">@</span><span class="prompt-path">github</span>:<span class="prompt">~$</span> <span class="cursor"></span>
-    </div>
-
-    <footer>
-        <p>
-            <a href="https://haruto0baron.github.io">Home</a>
-            <a href="https://github.com/haruto0baron" target="_blank">GitHub</a>
-        </p>
-        <p style="margin-top:8px;">&copy; 2026 Haruto Baron | Hosted on GitHub Pages</p>
-    </footer>
-
+</div>
 </body>
 </html>
