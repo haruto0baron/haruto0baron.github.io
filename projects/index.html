@@ -1,1 +1,248 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="HARUTO'S LAB - Project Database">
+<title>PROJECT DATABASE | HARUTO'S LAB</title>
+
+<style>
+:root {
+  --bg: #080c18;
+  --panel: #101a30;
+  --cyan: #55e6f5;
+  --green: #78efaa;
+  --amber: #ffc66d;
+  --text: #d6e5f5;
+  --muted: #8497b2;
+  --border: #31516e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Courier New", monospace;
+  line-height: 1.8;
+}
+
+a {
+  color: var(--cyan);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--amber);
+  text-decoration: underline;
+}
+
+.container {
+  max-width: 1000px;
+  margin: auto;
+}
+
+header {
+  padding: 24px;
+  text-align: center;
+  background: var(--panel);
+  border: 2px solid var(--cyan);
+}
+
+.logo {
+  color: var(--cyan);
+  font-size: clamp(25px, 5vw, 40px);
+  font-weight: bold;
+  letter-spacing: 4px;
+}
+
+.system {
+  color: var(--green);
+  font-size: 12px;
+}
+
+nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 25px;
+  padding: 15px;
+  margin: 15px 0 25px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+section {
+  padding: 22px;
+  margin: 25px 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+h2 {
+  color: var(--cyan);
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 10px;
+}
+
+h2::before {
+  content: "■ ";
+  color: var(--amber);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 15px;
+}
+
+.card {
+  padding: 18px;
+  background: #0b1324;
+  border: 1px solid var(--border);
+  transition: .2s;
+}
+
+.card:hover {
+  border-color: var(--cyan);
+  transform: translateY(-3px);
+}
+
+.card h3 {
+  color: var(--amber);
+}
+
+.card p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 1px 7px;
+  margin: 3px;
+  color: var(--cyan);
+  border: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.status {
+  display: inline-block;
+  padding: 2px 9px;
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-size: 11px;
+}
+
+.research {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+
+footer {
+  padding: 25px;
+  margin-top: 35px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  body { padding: 10px; }
+  section { padding: 15px; }
+  nav { gap: 14px; }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header>
+  <div class="system">RETRO COMPUTER SYSTEM ver. 1.0</div>
+  <div class="logo">HARUTO'S LAB</div>
+  <div class="system">PROJECT DATABASE</div>
+</header>
+
+<nav>
+  <a href="/">[ HOME ]</a>
+  <a href="/projects/">[ PROJECTS ]</a>
+  <a href="/#blog">[ BLOG ]</a>
+  <a href="/#about">[ ABOUT ]</a>
+  <a href="https://github.com/haruto0baron">[ GITHUB ]</a>
+</nav>
+
+<section>
+  <h2>PROJECT ARCHIVE</h2>
+  <p>開発中の作品や技術研究を紹介します。</p>
+  <p class="system">> LOADING PROJECT DATABASE... COMPLETE.</p>
+</section>
+
+<section>
+  <h2>GAME DEVELOPMENT</h2>
+  <div class="grid">
+
+    <article class="card">
+      <h3>01. 東方列島記</h3>
+      <span class="status">IN DEVELOPMENT</span>
+      <p>日本列島を舞台にした東方風RPG × 縦スクロールSTG。</p>
+      <span class="tag">PYTHON</span>
+      <span class="tag">PYXEL</span>
+    </article>
+
+    <article class="card">
+      <h3>02. 幻想郷異変録</h3>
+      <span class="status">IN DEVELOPMENT</span>
+      <p>弾幕、スペルカード、ボス戦を搭載するシューティングゲーム。</p>
+      <span class="tag">SCRATCH</span>
+      <span class="tag">DANMAKU</span>
+    </article>
+
+  </div>
+</section>
+
+<section>
+  <h2>HARDWARE & SYSTEM RESEARCH</h2>
+  <div class="grid">
+
+    <article class="card">
+      <h3>03. DATAPLUS 6 Linux</h3>
+      <span class="status research">RESEARCH</span>
+      <p>SH-4A / SH7724搭載電子辞書へのLinux移植研究。</p>
+      <span class="tag">LINUX</span>
+      <span class="tag">SH-4A</span>
+    </article>
+
+    <article class="card">
+      <h3>04. Brain Danmaku</h3>
+      <span class="status research">RESEARCH</span>
+      <p>SHARP Brain向けWindows CE弾幕ゲーム開発。</p>
+      <span class="tag">C</span>
+      <span class="tag">WINDOWS CE</span>
+    </article>
+
+    <article class="card">
+      <h3>05. PC-98 Development</h3>
+      <span class="status research">LEARNING</span>
+      <p>PC-98環境でのプログラミングとゲーム制作の研究。</p>
+      <span class="tag">PC-98</span>
+      <span class="tag">DOS</span>
+    </article>
+
+  </div>
+</section>
+
+<footer>
+  <p>HARUTO'S LABORATORY</p>
+  <p>© 2026 HARUTO'S LAB</p>
+  <p class="system">END OF PROJECT DATABASE.</p>
+</footer>
+
+</div>
+</body>
+</html>
+
