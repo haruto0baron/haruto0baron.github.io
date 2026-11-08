@@ -4,228 +4,156 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="HARUTO'S LAB - Programming, Retro Computing and Game Development.">
-<title>HARUTO'S LAB | Retro Computer Laboratory</title>
+<title>遥か遠くの北斗七星 - しかし手が届きそうだな</title>
 
 <style>
-:root {
-  --bg: #080c18;
-  --panel: #101a30;
-  --cyan: #55e6f5;
-  --green: #78efaa;
-  --amber: #ffc66d;
-  --text: #d6e5f5;
-  --muted: #8497b2;
-  --border: #31516e;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
 body {
   margin: 0;
-  padding: 20px;
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Courier New", monospace;
-  line-height: 1.8;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 10;
-  background: repeating-linear-gradient(
-    transparent 0px,
-    transparent 3px,
-    rgba(100,180,255,0.025) 4px
-  );
+  padding: 15px;
+  background-color: #b8d8ef;
+  background-image:
+    radial-gradient(#ffffff 1px, transparent 1px);
+  background-size: 12px 12px;
+  color: #222;
+  font-family: "MS PGothic", "ＭＳ Ｐゴシック", sans-serif;
+  font-size: 14px;
 }
 
 a {
-  color: var(--cyan);
-  text-decoration: none;
-}
-
-a:hover {
-  color: var(--amber);
+  color: #0000cc;
   text-decoration: underline;
 }
 
+a:visited { color: #800080; }
+a:hover { color: #ff0000; }
+
 .container {
-  max-width: 1000px;
+  max-width: 1050px;
   margin: auto;
+  background: white;
+  border: 3px ridge #999;
+  padding: 10px;
 }
 
 header {
-  border: 2px solid var(--cyan);
-  background: var(--panel);
-  padding: 24px;
   text-align: center;
-  box-shadow: 0 0 18px rgba(85,230,245,0.12);
+  padding: 25px 5px;
+  background: linear-gradient(#ffffff, #d8eaff);
+  border: 2px outset #aaa;
 }
 
-.logo {
-  color: var(--cyan);
-  font-size: clamp(25px, 5vw, 42px);
-  font-weight: bold;
-  letter-spacing: 4px;
-  margin: 5px 0;
+header h1 {
+  color: #000080;
+  font-size: 30px;
+  text-shadow: 2px 2px #b0b0ff;
+  margin: 5px;
 }
 
 .subtitle {
-  color: var(--amber);
-  font-size: 12px;
-  letter-spacing: 3px;
-}
-
-.system {
-  color: var(--green);
-  font-size: 12px;
-}
-
-nav {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 25px;
-  padding: 15px;
-  margin: 15px 0 25px;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-nav a {
-  font-size: 13px;
-  font-weight: bold;
-}
-
-section {
-  margin: 25px 0;
-  padding: 22px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-}
-
-.section-title {
-  color: var(--cyan);
-  font-size: 19px;
-  border-bottom: 1px dashed var(--border);
-  padding-bottom: 10px;
-  margin-top: 0;
-}
-
-.section-title::before {
-  content: "■ ";
-  color: var(--amber);
-}
-
-.hero {
-  padding: 35px 25px;
-  border: 2px double var(--cyan);
-}
-
-.hero h1 {
-  color: var(--green);
-  font-size: clamp(22px, 4vw, 32px);
-}
-
-.hero p {
-  color: var(--muted);
-}
-
-.status {
-  display: inline-block;
-  color: var(--green);
-  border: 1px solid var(--green);
-  padding: 2px 10px;
-  font-size: 12px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 15px;
-}
-
-.card {
-  padding: 18px;
-  background: #0b1324;
-  border: 1px solid var(--border);
-  transition: border-color .2s, transform .2s;
-}
-
-.card:hover {
-  border-color: var(--cyan);
-  transform: translateY(-3px);
-}
-
-.card h3 {
-  color: var(--amber);
+  color: #333366;
   font-size: 16px;
 }
 
-.card p {
-  color: var(--muted);
-  font-size: 13px;
+.welcome {
+  color: #0000cc;
+  font-weight: bold;
 }
 
-.tag {
-  display: inline-block;
-  color: var(--cyan);
-  border: 1px solid var(--border);
-  padding: 1px 7px;
-  margin: 3px;
+.columns {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) 160px;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.panel {
+  border: 2px ridge #aaa;
+  padding: 10px;
+  background: #fff;
+  min-width: 0;
+}
+
+.panel-title {
+  background: #000080;
+  color: white;
+  padding: 5px;
+  font-weight: bold;
+  margin: -10px -10px 10px;
+}
+
+.menu a {
+  display: block;
+  padding: 7px 3px;
+  border-bottom: 1px dotted #999;
+}
+
+.menu a::before {
+  content: "◆ ";
+  color: #000080;
+}
+
+h2 {
+  font-size: 17px;
+  color: #000080;
+  border-bottom: 2px solid #000080;
+  padding-bottom: 5px;
+}
+
+.new {
+  color: red;
+  font-weight: bold;
   font-size: 11px;
 }
 
-.article {
-  padding: 13px 0;
-  border-bottom: 1px dashed var(--border);
+.date {
+  color: #666;
+  font-size: 12px;
 }
 
-.article h3 {
-  margin: 0;
-  font-size: 15px;
+.counter {
+  text-align: center;
+  background: #111;
+  color: #00ff66;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 20px;
+  letter-spacing: 3px;
+  border: 3px inset #aaa;
 }
 
-.article p {
-  color: var(--muted);
-  font-size: 13px;
+.notice {
+  background: #ffffcc;
+  border: 1px dashed #cc9900;
+  padding: 8px;
 }
 
 footer {
+  margin-top: 15px;
+  padding: 15px;
   text-align: center;
-  color: var(--muted);
+  background: #e5e5e5;
+  border: 2px ridge #aaa;
   font-size: 12px;
-  padding: 25px;
-  border-top: 1px solid var(--border);
-  margin-top: 35px;
 }
 
-@media (max-width: 600px) {
-  body {
-    padding: 10px;
-    font-size: 14px;
+hr {
+  border: 0;
+  border-top: 1px dashed #888;
+  margin: 15px 0;
+}
+
+@media (max-width: 700px) {
+  .columns {
+    grid-template-columns: 1fr;
   }
 
-  section {
-    padding: 15px;
+  header h1 {
+    font-size: 24px;
   }
 
-  nav {
-    gap: 14px;
-  }
-
-  header {
-    padding: 18px 10px;
+  .menu a {
+    display: inline-block;
+    margin-right: 10px;
   }
 }
 </style>
@@ -235,105 +163,133 @@ footer {
 <div class="container">
 
 <header>
-  <div class="system">RETRO COMPUTER SYSTEM ver. 1.0</div>
-  <div class="logo">HARUTO'S LAB</div>
-  <div class="subtitle">RETRO COMPUTER LABORATORY</div>
-  <p class="system">PROGRAMMING / GAME DEV / LOW LEVEL</p>
+  <h1>★ 遥か遠くの北斗七星 ★</h1>
+  <p class="subtitle">しかし手が届きそうだな</p>
+  <p class="welcome">Welcome to my homepage!</p>
+  <p>あなたはこのページを訪れた大切なお客様です。</p>
+  <small>Since 2026.11.09</small>
 </header>
 
-<nav>
-  <a href="#home">[ HOME ]</a>
-  <a href="/projects/">[ PROJECTS ]</a>
-  <a href="#blog">[ BLOG ]</a>
-  <a href="#about">[ ABOUT ]</a>
-  <a href="https://github.com/haruto0baron" target="_blank" rel="noopener">[ GITHUB ]</a>
-</nav>
+<div class="columns">
 
-<main>
+<!-- 左メニュー -->
+<aside class="panel">
+  <div class="panel-title">MENU</div>
 
-<section class="hero" id="home">
-  <span class="status">● SYSTEM ONLINE</span>
-  <h1>Welcome to HARUTO'S LAB.</h1>
+  <nav class="menu">
+    <a href="/">TOP PAGE</a>
+    <a href="/projects/">PROJECTS</a>
+    <a href="/blog/">DIARY</a>
+    <a href="#profile">PROFILE</a>
+    <a href="#links">LINKS</a>
+    <a href="https://github.com/haruto0baron">GITHUB</a>
+  </nav>
+
+  <hr>
+
+  <div class="panel-title">INFORMATION</div>
+  <p>このサイトは個人運営のホームページです。</p>
+  <p>ゆっくり更新中。</p>
+
+  <p class="new">★ NEW! ★</p>
+  <p>サイトをリニューアルしました！</p>
+</aside>
+
+<!-- 中央本文 -->
+<main class="panel">
+  <div class="panel-title">TOP PAGE</div>
+
+  <h2>★ ようこそ！</h2>
   <p>
-    プログラミング、ゲーム制作、レトロコンピューター。
-    技術を学び、実験し、自分の作品を作る研究室です。
+    ようこそ、「遥か遠くの北斗七星」へ！<br>
+    ここは管理人の趣味や制作物を紹介する個人サイトです。
   </p>
-  <p class="system">> INITIALIZING... COMPLETE.</p>
-</section>
 
-<section id="projects">
-  <h2 class="section-title">PROJECT DATABASE</h2>
-  <div class="grid">
-
-    <article class="card">
-      <h3>01. GAME DEVELOPMENT</h3>
-      <p>ScratchやPython、Godotを使ったゲーム制作。</p>
-      <span class="tag">GAME</span>
-      <span class="tag">PYTHON</span>
-    </article>
-
-    <article class="card">
-      <h3>02. LINUX RESEARCH</h3>
-      <p>Linux、カーネル、組み込みシステムの研究。</p>
-      <span class="tag">LINUX</span>
-      <span class="tag">C</span>
-    </article>
-
-    <article class="card">
-      <h3>03. RETRO COMPUTING</h3>
-      <p>PC-98や電子辞書など、レトロ機器の研究。</p>
-      <span class="tag">RETRO</span>
-      <span class="tag">HARDWARE</span>
-    </article>
-
-    <article class="card">
-      <h3>04. WEB DEVELOPMENT</h3>
-      <p>HTML、CSS、JavaScriptによるWeb開発。</p>
-      <span class="tag">HTML</span>
-      <span class="tag">CSS</span>
-    </article>
-
-  </div>
-  <p><a href="/projects/">→ VIEW ALL PROJECTS</a></p>
-</section>
-
-<section id="blog">
-  <h2 class="section-title">TECHNICAL JOURNAL</h2>
-
-  <div class="article">
-    <h3>COMING SOON: 技術ブログを準備中</h3>
-    <p>ゲーム制作やLinux、プログラミングについて発信していきます。</p>
-  </div>
-
-  <p class="system">> BLOG DATABASE: INITIALIZING...</p>
-</section>
-
-<section id="about">
-  <h2 class="section-title">ABOUT THE DEVELOPER</h2>
   <p>
-    プログラミングや低レイヤー技術に興味を持ち、
-    小さなカーネルやアプリ、ゲームなどの制作に挑戦しています。
+    ゲーム制作、プログラミング、古いパソコン、
+    電子工作などについて書いていきます。
   </p>
-  <p class="system">CURRENTLY LEARNING:</p>
-  <div>
-    <span class="tag">C</span>
-    <span class="tag">Python</span>
-    <span class="tag">Java</span>
-    <span class="tag">HTML</span>
-    <span class="tag">CSS</span>
-    <span class="tag">Linux</span>
-    <span class="tag">Rust</span>
-  </div>
-  <p><a href="https://github.com/haruto0baron" target="_blank" rel="noopener">→ GitHub Profile</a></p>
-</section>
 
+  <hr>
+
+  <h2>更新履歴</h2>
+  <p>
+    <span class="date">2026/11/09</span>
+    <span class="new">NEW!</span><br>
+    ホームページをリニューアルしました。
+  </p>
+
+  <p>
+    <span class="date">2026/11/08</span><br>
+    サイト更新中……
+  </p>
+
+  <hr>
+
+  <h2>管理人の部屋</h2>
+  <div id="profile">
+    <p>
+      名前：管理人<br>
+      趣味：ゲーム制作・プログラミング・電子工作<br>
+      好きなもの：レトロPC・ゲーム・ものづくり
+    </p>
+  </div>
+
+  <hr>
+
+  <h2>おすすめコンテンツ</h2>
+  <ul>
+    <li><a href="/projects/">制作物・プロジェクト一覧</a></li>
+    <li><a href="/blog/">日記・開発記録</a></li>
+    <li><a href="https://github.com/haruto0baron">GitHub</a></li>
+  </ul>
+
+  <div class="notice">
+    <strong>お知らせ</strong><br>
+    まだまだ制作途中のサイトです。<br>
+    気長にお付き合いください！
+  </div>
 </main>
 
+<!-- 右サイドバー -->
+<aside class="panel">
+  <div class="panel-title">VISITOR</div>
+
+  <p align="center">あなたは訪問者です</p>
+  <div class="counter">000001</div>
+  <p align="center"><small>アクセスカウンター風表示</small></p>
+
+  <hr>
+
+  <div class="panel-title">TODAY'S INFO</div>
+  <p>★ サイト更新中</p>
+  <p>★ 制作物を公開予定</p>
+
+  <hr>
+
+  <div class="panel-title">SPECIAL</div>
+  <p align="center">
+    <span class="new">工事中！</span>
+  </p>
+  <p align="center">コンテンツを追加予定です。</p>
+</aside>
+
+</div>
+
 <footer>
-  <p>HARUTO'S LABORATORY</p>
-  <p>© 2026 HARUTO'S LAB</p>
-  <p>POWERED BY GITHUB PAGES</p>
-  <p class="system">END OF TRANSMISSION.</p>
+  <div id="links">
+    <a href="/">TOP</a> |
+    <a href="/projects/">PROJECTS</a> |
+    <a href="/blog/">DIARY</a> |
+    <a href="https://github.com/haruto0baron">GITHUB</a>
+  </div>
+
+  <hr>
+
+  <p>遥か遠くの北斗七星</p>
+  <p>しかし手が届きそうだな</p>
+  <p>Copyright © 2026 HARUTO. All Rights Reserved.</p>
+  <p>Thank you for visiting!</p>
 </footer>
 
 </div>
